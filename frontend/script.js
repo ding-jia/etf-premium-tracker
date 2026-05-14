@@ -1,11 +1,13 @@
 let autoRefresh = true;
 let refreshInterval = null;
 let allData = { nasdaq: [], sp500: [] };
+let watchlist = new Set();
 let chartInstance = null;
 let currentChartCode = null;
 
 const API = '/api/etfs';
 const HISTORY_API = '/api/history';
+const WATCHLIST_API = '/api/watchlist';
 
 const ETFS = [
   { code: "513100", name: "纳指ETF国泰", exchange: "SH", category: "nasdaq", manager: "国泰基金" },
@@ -65,11 +67,12 @@ function renderCard(etf) {
   const level = premiumLevel(Math.abs(premium));
   const changeClass = etf.change_pct >= 0 ? 'up' : 'down';
   const changeSign = etf.change_pct >= 0 ? '+' : '';
+  const isWatchlist = watchlist.has(etf.code) ? ' watchlist' : '';
 
   return `
-    <div class="list-item premium-${level}" data-code="${etf.code}" data-premium="${premium}">
+    <div class="list-item premium-${level}${isWatchlist}" data-code="${etf.code}" data-premium="${premium}">
       <span class="li-code">${etf.code}</span>
-      <span class="li-name">${etf.name}</span>
+      <span class="li-name">${isWatchlist ? '★ ' : ''}${etf.name}</span>
       <span class="li-manager">${etf.manager}</span>
       <span class="li-price">${etf.price ?? '--'}</span>
       <span class="li-change ${changeClass}">${changeSign}${(etf.change_pct ?? 0).toFixed(2)}%</span>
@@ -83,7 +86,7 @@ function renderGrid(data, containerId, sortSelectId) {
   const container = document.getElementById(containerId);
   const sortBy = document.getElementById(sortSelectId).value;
 
-  const sorted = [...data].sort((a, b) => {
+  const sortFn = (a, b) => {
     switch (sortBy) {
       case 'premium-desc': return (b.premium ?? 0) - (a.premium ?? 0);
       case 'premium-asc': return (a.premium ?? 0) - (b.premium ?? 0);
@@ -91,7 +94,11 @@ function renderGrid(data, containerId, sortSelectId) {
       case 'name': return a.name.localeCompare(b.name);
       default: return 0;
     }
-  });
+  };
+
+  const pinned = data.filter(e => watchlist.has(e.code)).sort(sortFn);
+  const rest = data.filter(e => !watchlist.has(e.code)).sort(sortFn);
+  const sorted = [...pinned, ...rest];
 
   container.innerHTML = sorted.map(etf => renderCard(etf)).join('');
 
@@ -278,9 +285,17 @@ function startAutoRefresh() {
 }
 
 // event listeners
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   renderSkeleton('nasdaqGrid', 7);
   renderSkeleton('sp500Grid', 3);
+
+  try {
+    const wlResp = await fetch(WATCHLIST_API);
+    const wlData = await wlResp.json();
+    watchlist = new Set(wlData.codes);
+  } catch (err) {
+    console.error('watchlist fetch error:', err);
+  }
 
   fetchData();
   startAutoRefresh();

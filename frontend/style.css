@@ -264,6 +264,19 @@ main {
   border-color: #d1d5db;
 }
 
+.list-item.watchlist {
+  background: #fffbeb;
+}
+
+.list-item.watchlist:hover {
+  background: #fef3c7;
+  border-color: #fcd34d;
+}
+
+.list-item.watchlist .li-code {
+  color: #b45309;
+}
+
 .list-item.premium-low  { border-left-color: var(--green); }
 .list-item.premium-mid  { border-left-color: var(--yellow); }
 .list-item.premium-high { border-left-color: var(--orange); }

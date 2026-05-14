@@ -170,6 +170,15 @@ app = FastAPI(title="ETF Premium Tracker", lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+WATCHLIST_FILE = Path(__file__).parent / "watchlist.txt"
+
+
+@app.get("/api/watchlist")
+async def get_watchlist():
+    if not WATCHLIST_FILE.exists():
+        return {"codes": []}
+    codes = [line.strip() for line in WATCHLIST_FILE.read_text().splitlines() if line.strip()]
+    return {"codes": codes}
 
 
 @app.get("/api/etfs")
