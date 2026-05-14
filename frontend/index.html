@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ETF 溢价率监控</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <h1>ETF 溢价率监控</h1>
+    </div>
+    <span class="subtitle">A股 · 标普 &amp; 纳指</span>
+  </div>
+  <div class="header-right">
+    <div class="status-badge" id="statusBadge">
+      <span class="status-dot"></span>
+      <span id="statusText">加载中</span>
+    </div>
+    <div class="update-info">
+      <span id="updateTime">--</span>
+      <button id="refreshBtn" title="手动刷新">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="columns">
+  <section id="nasdaqSection">
+    <div class="section-header">
+      <h2><span class="badge badge-nasdaq">NASDAQ</span> 纳指 ETF</h2>
+      <div class="section-controls">
+        <span class="count" id="nasdaqCount">0 只</span>
+        <select id="nasdaqSort" class="sort-select">
+          <option value="premium-desc">溢价率 ↓</option>
+          <option value="premium-asc">溢价率 ↑</option>
+          <option value="code">代码</option>
+          <option value="name">名称</option>
+        </select>
+      </div>
+    </div>
+    <div class="list" id="nasdaqGrid"></div>
+  </section>
+
+  <section id="sp500Section">
+    <div class="section-header">
+      <h2><span class="badge badge-sp500">S&P 500</span> 标普 ETF</h2>
+      <div class="section-controls">
+        <span class="count" id="sp500Count">0 只</span>
+        <select id="sp500Sort" class="sort-select">
+          <option value="premium-desc">溢价率 ↓</option>
+          <option value="premium-asc">溢价率 ↑</option>
+          <option value="code">代码</option>
+          <option value="name">名称</option>
+        </select>
+      </div>
+    </div>
+    <div class="list" id="sp500Grid"></div>
+  </section>
+  </div>
+</main>
+
+<footer>
+  <span>数据来源：东方财富</span>
+  <span>IOPV 为实时估算净值，溢价率 = (现价 - IOPV) / IOPV × 100%</span>
+  <span>每 30 秒自动刷新 · <a href="#" id="toggleAuto">暂停</a></span>
+</footer>
+
+<div class="modal-overlay" id="chartModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">历史溢价率</h3>
+      <button class="modal-close" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <canvas id="premiumChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
