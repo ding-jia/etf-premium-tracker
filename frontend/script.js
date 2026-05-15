@@ -43,9 +43,16 @@ function premiumLevel(p) {
 }
 
 function premiumLabel(p) {
-  if (p <= 1) return '正常';
-  if (p <= 3) return '偏高';
-  if (p <= 5) return '危险';
+  const abs = Math.abs(p);
+  if (p < 0) {
+    if (abs <= 1) return '正常';
+    if (abs <= 3) return '折价';
+    if (abs <= 5) return '高折价';
+    return '深度折价';
+  }
+  if (abs <= 1) return '正常';
+  if (abs <= 3) return '溢价';
+  if (abs <= 5) return '高溢价';
   return '极高';
 }
 
@@ -78,7 +85,7 @@ function renderCard(etf) {
       <span class="li-price">${etf.price ?? '--'}</span>
       <span class="li-change ${changeClass}">${changeSign}${(etf.change_pct ?? 0).toFixed(2)}%</span>
       <span class="li-premium">${premium >= 0 ? '+' : ''}${premium.toFixed(2)}%</span>
-      <span class="li-label">${premiumLabel(Math.abs(premium))}</span>
+      <span class="li-label">${premiumLabel(premium)}</span>
     </div>
   `;
 }
