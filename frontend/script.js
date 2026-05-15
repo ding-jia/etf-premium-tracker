@@ -35,10 +35,11 @@ const ETFS = [
 ];
 
 function premiumLevel(p) {
-  if (p <= 1) return 'low';
-  if (p <= 3) return 'mid';
-  if (p <= 5) return 'high';
-  return 'extreme';
+  const abs = Math.abs(p);
+  if (abs > 5) return 'purple';
+  if (p > 0) return 'up';
+  if (p < 0) return 'down';
+  return 'low';
 }
 
 function premiumLabel(p) {
@@ -64,7 +65,7 @@ function formatAmount(v) {
 
 function renderCard(etf) {
   const premium = etf.premium ?? 0;
-  const level = premiumLevel(Math.abs(premium));
+  const level = premiumLevel(premium);
   const changeClass = etf.change_pct >= 0 ? 'up' : 'down';
   const changeSign = etf.change_pct >= 0 ? '+' : '';
   const isWatchlist = watchlist.has(etf.code) ? ' watchlist' : '';
