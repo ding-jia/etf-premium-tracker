@@ -1,6 +1,7 @@
 import json
 import time
 import asyncio
+import sqlite3
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -38,8 +39,10 @@ ETFS = [
 
 HISTORY_DIR = Path(__file__).parent / "data"
 HISTORY_FILE = HISTORY_DIR / "history.json"
+DB_PATH = HISTORY_DIR / "premium.db"
 cached_response = {"nasdaq": [], "sp500": [], "total_count": 0, "market_status": "closed", "update_time": ""}
 history_store: dict = {}
+last_daily_save: str = ""
 
 
 def load_history():
@@ -54,6 +57,22 @@ def load_history():
 def save_history():
     HISTORY_DIR.mkdir(exist_ok=True)
     HISTORY_FILE.write_text(json.dumps(history_store, ensure_ascii=False))
+
+
+def init_db():
+    HISTORY_DIR.mkdir(exist_ok=True)
+    with sqlite3.connect(str(DB_PATH)) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS daily_premium (
+                code TEXT NOT NULL,
+                date TEXT NOT NULL,
+                premium REAL,
+                price REAL,
+                iopv REAL,
+                PRIMARY KEY (code, date)
+            )
+        """)
+        conn.commit()
 
 
 def fetch_all() -> list:
@@ -120,7 +139,7 @@ def fetch_all() -> list:
 
 
 def update_cache():
-    global cached_response, history_store
+    global cached_response, history_store, last_daily_save
     data = fetch_all()
     if not data:
         print("  fetch failed", flush=True)
@@ -139,6 +158,19 @@ def update_cache():
     is_weekend = now.weekday() >= 5
     total_min = now.hour * 60 + now.minute
     is_trading = not is_weekend and ((570 <= total_min < 690) or (780 <= total_min < 900))
+
+    if not is_trading and not is_weekend:
+        today = now.strftime("%Y-%m-%d")
+        if today != last_daily_save:
+            with sqlite3.connect(str(DB_PATH)) as conn:
+                for item in data:
+                    conn.execute(
+                        "INSERT OR REPLACE INTO daily_premium (code, date, premium, price, iopv) VALUES (?, ?, ?, ?, ?)",
+                        (item["code"], today, item["premium"], item["price"], item["iopv"] or 0)
+                    )
+                conn.commit()
+            last_daily_save = today
+            print(f"  saved daily premiums for {today}", flush=True)
 
     cached_response = {
         "nasdaq": [d for d in data if d["category"] == "nasdaq"],
@@ -161,6 +193,7 @@ async def background_updater():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_history()
+    init_db()
     task = asyncio.create_task(background_updater())
     yield
     task.cancel()
@@ -189,6 +222,16 @@ async def get_etfs():
 @app.get("/api/history/{code}")
 async def get_history(code: str):
     return {"code": code, "history": history_store.get(code, [])}
+
+
+@app.get("/api/daily/{code}")
+async def get_daily(code: str):
+    with sqlite3.connect(str(DB_PATH)) as conn:
+        rows = conn.execute(
+            "SELECT date, premium FROM daily_premium WHERE code = ? ORDER BY date ASC",
+            (code,)
+        ).fetchall()
+    return {"code": code, "daily": [[row[0], row[1]] for row in rows]}
 
 
 @app.get("/{path:path}")

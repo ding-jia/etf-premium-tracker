@@ -1,12 +1,14 @@
 let autoRefresh = true;
 let refreshInterval = null;
+let statusInterval = null;
 let allData = { nasdaq: [], sp500: [] };
+let isMarketOpen = false;
 let watchlist = new Set();
 let chartInstance = null;
 let currentChartCode = null;
 
 const API = '/api/etfs';
-const HISTORY_API = '/api/history';
+const HISTORY_API = '/api/daily';
 const WATCHLIST_API = '/api/watchlist';
 
 const ETFS = [
@@ -148,19 +150,22 @@ function updateCounts(nasdaq, sp500) {
   document.getElementById('sp500Count').textContent = `${sp500.length} 只`;
 }
 
-async function fetchData() {
+async function fetchData(forceRender = false) {
   try {
     const resp = await fetch(API);
     const data = await resp.json();
 
     allData = { nasdaq: data.nasdaq, sp500: data.sp500 };
+    isMarketOpen = data.market_status === 'open';
 
     updateMarketStatus(data.market_status);
     document.getElementById('updateTime').textContent = data.update_time;
 
-    renderGrid(data.nasdaq, 'nasdaqGrid', 'nasdaqSort');
-    renderGrid(data.sp500, 'sp500Grid', 'sp500Sort');
-    updateCounts(data.nasdaq, data.sp500);
+    if (forceRender || isMarketOpen) {
+      renderGrid(data.nasdaq, 'nasdaqGrid', 'nasdaqSort');
+      renderGrid(data.sp500, 'sp500Grid', 'sp500Sort');
+      updateCounts(data.nasdaq, data.sp500);
+    }
   } catch (err) {
     console.error('fetch error:', err);
   }
@@ -173,14 +178,14 @@ async function openChart(code) {
   const canvas = document.getElementById('premiumChart');
 
   const etf = ETFS.find(e => e.code === code);
-  title.textContent = `${etf ? etf.name : code} (${code}) · 历史溢价率`;
+  title.textContent = `${etf ? etf.name : code} (${code}) · 历史每日溢价率`;
 
   overlay.classList.add('active');
 
   try {
     const resp = await fetch(`${HISTORY_API}/${code}`);
     const data = await resp.json();
-    renderChart(data.history || []);
+    renderChart(data.daily || []);
   } catch {
     renderChart([]);
   }
@@ -201,6 +206,10 @@ function renderChart(records) {
   }
 
   const labels = records.map(r => {
+    if (typeof r[0] === 'string') {
+      const parts = r[0].split('-');
+      return parts.length >= 3 ? `${parts[1]}-${parts[2]}` : r[0];
+    }
     const d = new Date(r[0] * 1000);
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   });
@@ -287,9 +296,34 @@ function closeChart() {
 
 function startAutoRefresh() {
   if (refreshInterval) clearInterval(refreshInterval);
-  refreshInterval = setInterval(() => {
-    if (autoRefresh) fetchData();
-  }, 30000);
+  refreshInterval = setInterval(fetchData, 300000);
+}
+
+function stopAutoRefresh() {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+}
+
+async function checkMarketStatus() {
+  try {
+    const resp = await fetch(API);
+    const data = await resp.json();
+    isMarketOpen = data.market_status === 'open';
+    updateMarketStatus(data.market_status);
+    document.getElementById('updateTime').textContent = data.update_time;
+    if (isMarketOpen) {
+      if (!refreshInterval) {
+        startAutoRefresh();
+        fetchData();
+      }
+    } else {
+      stopAutoRefresh();
+    }
+  } catch (err) {
+    console.error('status check error:', err);
+  }
 }
 
 // event listeners
@@ -305,13 +339,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('watchlist fetch error:', err);
   }
 
-  fetchData();
-  startAutoRefresh();
+  fetchData(true);
+  checkMarketStatus();
+  statusInterval = setInterval(checkMarketStatus, 60000);
 
   document.getElementById('refreshBtn').addEventListener('click', () => {
     const btn = document.getElementById('refreshBtn');
     btn.classList.add('spin');
-    fetchData().finally(() => {
+    fetchData(true).finally(() => {
       setTimeout(() => btn.classList.remove('spin'), 600);
     });
   });
@@ -321,6 +356,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     autoRefresh = !autoRefresh;
     document.getElementById('toggleAuto').textContent = autoRefresh ? '暂停' : '开启';
     document.getElementById('toggleAuto').style.color = autoRefresh ? '' : 'var(--yellow)';
+    if (autoRefresh && isMarketOpen && !refreshInterval) {
+      startAutoRefresh();
+      fetchData(true);
+    } else if (!autoRefresh) {
+      stopAutoRefresh();
+    }
   });
 
   document.getElementById('modalClose').addEventListener('click', closeChart);
