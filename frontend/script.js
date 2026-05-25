@@ -296,7 +296,7 @@ function closeChart() {
 
 function startAutoRefresh() {
   if (refreshInterval) clearInterval(refreshInterval);
-  refreshInterval = setInterval(fetchData, 300000);
+  refreshInterval = setInterval(fetchData, 600000);
 }
 
 function stopAutoRefresh() {
