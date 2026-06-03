@@ -12,6 +12,7 @@ const HISTORY_API = '/api/daily';
 const WATCHLIST_API = '/api/watchlist';
 
 function premiumLevel(p) {
+  if (p == null) return 'low';
   const abs = Math.abs(p);
   if (abs > 5) return 'purple';
   if (p > 0) return 'up';
@@ -20,6 +21,7 @@ function premiumLevel(p) {
 }
 
 function premiumLabel(p) {
+  if (p == null) return 'N/A';
   const abs = Math.abs(p);
   if (p < 0) {
     if (abs <= 1) return '正常';
@@ -31,20 +33,6 @@ function premiumLabel(p) {
   if (abs <= 3) return '溢价';
   if (abs <= 5) return '高溢价';
   return '极高';
-}
-
-function formatVol(v) {
-  if (!v) return '--';
-  if (v >= 1e8) return (v / 1e8).toFixed(2) + '亿';
-  if (v >= 1e4) return (v / 1e4).toFixed(1) + '万';
-  return v.toString();
-}
-
-function formatAmount(v) {
-  if (!v) return '--';
-  if (v >= 1e8) return (v / 1e8).toFixed(2) + '亿';
-  if (v >= 1e4) return (v / 1e4).toFixed(1) + '万';
-  return v.toString();
 }
 
 function renderCard(etf) {
@@ -113,6 +101,7 @@ function renderSkeleton(containerId, count) {
   const container = document.getElementById(containerId);
   container.innerHTML = Array(count).fill(0).map(() => `
     <div class="list-item loading">
+      <span class="li-star">☆</span>
       <span class="li-code">888888</span>
       <span class="li-name">加载中加载中</span>
       <span class="li-manager">加载中</span>

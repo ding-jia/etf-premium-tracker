@@ -253,6 +253,7 @@ main {
   margin-bottom: 2px;
 }
 
+.lh-star    { min-width: 18px; }
 .lh-code    { min-width: 52px; }
 .lh-name    { min-width: 0; flex: 1; }
 .lh-manager { min-width: 72px; flex-shrink: 0; }
