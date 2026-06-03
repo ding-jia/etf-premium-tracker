@@ -11,7 +11,7 @@
   --border: #e2e6ea;
   --text-primary: #1f2937;
   --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  --text-muted: #6b7280;
   --accent-blue: #2563eb;
   --accent-cyan: #0891b2;
   --green: #16a34a;
@@ -304,6 +304,20 @@ main {
   color: #b45309;
 }
 
+.list-item.best-fee {
+  background: #f0fdf4;
+  border-left-color: var(--green);
+}
+
+.list-item.best-fee:hover {
+  background: #dcfce7;
+}
+
+.list-item.best-fee .li-fee {
+  color: var(--green);
+  font-weight: 700;
+}
+
 .list-item.premium-up     { border-left-color: var(--red); }
 .list-item.premium-down   { border-left-color: var(--green); }
 .list-item.premium-purple { border-left-color: var(--purple); }
@@ -311,8 +325,9 @@ main {
 .li-star {
   cursor: pointer;
   color: var(--text-muted);
-  font-size: 0.9rem;
-  min-width: 18px;
+  font-size: 1rem;
+  min-width: 28px;
+  padding: 4px 5px;
   text-align: center;
   flex-shrink: 0;
   user-select: none;

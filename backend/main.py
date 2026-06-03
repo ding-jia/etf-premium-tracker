@@ -2,6 +2,7 @@ import json
 import time
 import asyncio
 import sqlite3
+import logging
 import httpx
 from datetime import datetime
 from pathlib import Path
@@ -10,6 +11,9 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
+logger = logging.getLogger("etf")
 
 
 ETFS = [
@@ -51,13 +55,23 @@ def load_history():
     if HISTORY_FILE.exists():
         try:
             history_store = json.loads(HISTORY_FILE.read_text())
-        except Exception:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning("failed to load history: %s", e)
             history_store = {}
 
 
 def save_history():
     HISTORY_DIR.mkdir(exist_ok=True)
     HISTORY_FILE.write_text(json.dumps(history_store, ensure_ascii=False))
+
+
+def _save_daily_snapshot(rows):
+    with sqlite3.connect(str(DB_PATH)) as conn:
+        conn.executemany(
+            "INSERT OR REPLACE INTO daily_premium (code, date, premium, price, iopv) VALUES (?, ?, ?, ?, ?)",
+            rows,
+        )
+        conn.commit()
 
 
 def init_db():
@@ -85,7 +99,8 @@ async def fetch_all() -> list:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(url)
             text = resp.content.decode("gbk", errors="replace")
-    except Exception:
+    except Exception as e:
+        logger.error("fetch_all http error: %s", e)
         return []
 
     result = []
@@ -157,7 +172,7 @@ async def update_cache():
                 history_store[c] = []
             history_store[c].append([now_ts, item["premium"]])
             history_store[c] = history_store[c][-480:]
-        save_history()
+        await asyncio.to_thread(save_history)
 
     is_weekend = now.weekday() >= 5
     total_min = now.hour * 60 + now.minute
@@ -167,13 +182,8 @@ async def update_cache():
         today = now.strftime("%Y-%m-%d")
         has_iopv = any(item.get("iopv") for item in data)
         if today != last_daily_save and has_iopv:
-            with sqlite3.connect(str(DB_PATH)) as conn:
-                for item in data:
-                    conn.execute(
-                        "INSERT OR REPLACE INTO daily_premium (code, date, premium, price, iopv) VALUES (?, ?, ?, ?, ?)",
-                        (item["code"], today, item["premium"], item["price"], item["iopv"] or 0)
-                    )
-                conn.commit()
+            rows = [(item["code"], today, item["premium"], item["price"], item["iopv"] or 0) for item in data]
+            await asyncio.to_thread(_save_daily_snapshot, rows)
             last_daily_save = today
             print(f"  saved daily premiums for {today}", flush=True)
 
@@ -219,7 +229,8 @@ def load_fees():
     if FEES_FILE.exists():
         try:
             fees_cache = json.loads(FEES_FILE.read_text())
-        except Exception:
+        except (json.JSONDecodeError, OSError) as e:
+            logger.warning("failed to load fees: %s", e)
             fees_cache = {}
 
 
@@ -233,6 +244,7 @@ async def get_watchlist():
 
 @app.post("/api/watchlist/toggle/{code}")
 async def toggle_watchlist(code: str):
+    import fcntl
     codes = []
     if WATCHLIST_FILE.exists():
         codes = [line.strip() for line in WATCHLIST_FILE.read_text().splitlines() if line.strip()]
@@ -240,7 +252,12 @@ async def toggle_watchlist(code: str):
         codes.remove(code)
     else:
         codes.append(code)
-    WATCHLIST_FILE.write_text("\n".join(codes) + "\n")
+    with open(str(WATCHLIST_FILE), "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            f.write("\n".join(codes) + "\n")
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
     return {"codes": codes, "in_watchlist": code in codes}
 
 
@@ -262,12 +279,16 @@ async def get_history(code: str):
 
 @app.get("/api/daily/{code}")
 async def get_daily(code: str):
+    rows = await asyncio.to_thread(_query_daily, code)
+    return {"code": code, "daily": [[row[0], row[1]] for row in rows]}
+
+
+def _query_daily(code: str):
     with sqlite3.connect(str(DB_PATH)) as conn:
-        rows = conn.execute(
+        return conn.execute(
             "SELECT date, premium FROM daily_premium WHERE code = ? ORDER BY date ASC",
             (code,)
         ).fetchall()
-    return {"code": code, "daily": [[row[0], row[1]] for row in rows]}
 
 
 @app.get("/{path:path}")

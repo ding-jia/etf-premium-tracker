@@ -11,6 +11,30 @@ const API = '/api/etfs';
 const HISTORY_API = '/api/daily';
 const WATCHLIST_API = '/api/watchlist';
 
+function handleError(ctx, err, msg) {
+  console.error(ctx, err);
+  if (msg) showToast(msg);
+}
+
+function showToast(msg, duration = 3000) {
+  let container = document.getElementById('toastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toastContainer';
+    container.style.cssText = 'position:fixed;top:70px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;';
+    document.body.appendChild(container);
+  }
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.cssText = 'padding:10px 18px;border-radius:6px;background:#dc2626;color:#fff;font-size:0.85rem;box-shadow:0 4px 12px rgba(0,0,0,0.15);opacity:0;transition:opacity 0.3s;pointer-events:auto;';
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.style.opacity = '1');
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
 function premiumLevel(p) {
   if (p == null) return 'low';
   const abs = Math.abs(p);
@@ -35,20 +59,27 @@ function premiumLabel(p) {
   return '极高';
 }
 
-function renderCard(etf) {
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderCard(etf, minFee) {
   const premium = etf.premium ?? 0;
   const level = premiumLevel(premium);
   const changeClass = etf.change_pct >= 0 ? 'up' : 'down';
   const changeSign = etf.change_pct >= 0 ? '+' : '';
   const fee = etf.fee;
-  const feeText = fee && fee.total != null ? fee.total.toFixed(2) + '%' : '--';
+  const feeTotal = fee && fee.total != null ? fee.total : null;
+  const feeText = feeTotal != null ? feeTotal.toFixed(2) + '%' : '--';
   const isWL = watchlist.has(etf.code);
+  const isBestFee = feeTotal != null && minFee != null && feeTotal === minFee;
   return `
-    <div class="list-item premium-${level}${isWL ? ' watchlist' : ''}" data-code="${etf.code}" data-premium="${premium}">
+    <div class="list-item premium-${level}${isWL ? ' watchlist' : ''}${isBestFee ? ' best-fee' : ''}" data-code="${etf.code}" data-premium="${premium}">
       <span class="li-star" data-code="${etf.code}">${isWL ? '★' : '☆'}</span>
       <span class="li-code">${etf.code}</span>
-      <span class="li-name">${etf.name}</span>
-      <span class="li-manager">${etf.manager}</span>
+      <span class="li-name">${escapeHtml(etf.name)}</span>
+      <span class="li-manager">${escapeHtml(etf.manager)}</span>
       <span class="li-fee">${feeText}</span>
       <span class="li-price">${etf.price ?? '--'}</span>
       <span class="li-change ${changeClass}">${changeSign}${(etf.change_pct ?? 0).toFixed(2)}%</span>
@@ -74,11 +105,13 @@ function renderGrid(data, containerId, sortSelectId) {
     }
   };
 
+  const minFee = Math.min(...data.map(e => (e.fee && e.fee.total) || Infinity));
+
   const pinned = data.filter(e => watchlist.has(e.code)).sort(sortFn);
   const rest = data.filter(e => !watchlist.has(e.code)).sort(sortFn);
   const sorted = [...pinned, ...rest];
 
-  container.innerHTML = sorted.map(etf => renderCard(etf)).join('');
+  container.innerHTML = sorted.map(etf => renderCard(etf, minFee)).join('');
 
   // star toggle
   container.querySelectorAll('.li-star').forEach(el => {
@@ -148,8 +181,7 @@ async function fetchData(forceRender = false) {
       updateCounts(data.nasdaq, data.sp500);
     }
   } catch (err) {
-    console.error('fetch error:', err);
-    showToast('数据加载失败，请检查网络连接');
+    handleError('fetchData', err, '数据加载失败，请检查网络连接');
   }
 }
 
@@ -162,7 +194,7 @@ async function toggleWatchlist(code) {
     renderGrid(allData.nasdaq, 'nasdaqGrid', 'nasdaqSort');
     renderGrid(allData.sp500, 'sp500Grid', 'sp500Sort');
   } catch (err) {
-    console.error('watchlist toggle error:', err);
+    handleError('toggleWatchlist', err, '操作失败');
   }
 }
 
@@ -182,8 +214,8 @@ async function openChart(code) {
     const resp = await fetch(`${HISTORY_API}/${code}`);
     const data = await resp.json();
     renderChart(data.daily || []);
-  } catch {
-    showToast('历史数据加载失败');
+  } catch (err) {
+    handleError('openChart', err, '历史数据加载失败');
     renderChart([]);
   }
 }
@@ -319,9 +351,15 @@ async function checkMarketStatus() {
       stopAutoRefresh();
     }
   } catch (err) {
-    console.error('status check error:', err);
+    handleError('checkMarketStatus', err, null);
   }
 }
+
+window.addEventListener('beforeunload', () => {
+  if (statusInterval) clearInterval(statusInterval);
+  if (refreshInterval) clearInterval(refreshInterval);
+  if (chartInstance) chartInstance.destroy();
+});
 
 // event listeners
 document.addEventListener('DOMContentLoaded', async () => {
@@ -333,7 +371,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const wlData = await wlResp.json();
     watchlist = new Set(wlData.codes);
   } catch (err) {
-    console.error('watchlist fetch error:', err);
+    handleError('watchlistInit', err, null);
   }
 
   fetchData(true);
