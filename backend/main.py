@@ -8,7 +8,7 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -42,6 +42,7 @@ HISTORY_FILE = HISTORY_DIR / "history.json"
 DB_PATH = HISTORY_DIR / "premium.db"
 cached_response = {"nasdaq": [], "sp500": [], "total_count": 0, "market_status": "closed", "update_time": ""}
 history_store: dict = {}
+history_lock = asyncio.Lock()
 last_daily_save: str = ""
 
 
@@ -113,8 +114,7 @@ async def fetch_all() -> list:
             continue
 
         if iopv == 0:
-            iopv = prev_close or 0
-            premium = round((price - iopv) / iopv * 100, 2) if iopv else 0
+            premium = None
 
         fee = fees_cache.get(code)
 
@@ -129,8 +129,6 @@ async def fetch_all() -> list:
             "nav": round(nav, 4) if nav else None,
             "premium": premium,
             "change_pct": change_pct,
-            "iopv_change_pct": 0,
-            "turnover_rate": None,
             "volume": volume_hands * 100,
             "amount": turnover_wan * 10000,
             "prev_close": prev_close,
@@ -152,13 +150,14 @@ async def update_cache():
 
     now = datetime.now()
     now_ts = int(time.time())
-    for item in data:
-        c = item["code"]
-        if c not in history_store:
-            history_store[c] = []
-        history_store[c].append([now_ts, item["premium"]])
-        history_store[c] = history_store[c][-480:]
-    save_history()
+    async with history_lock:
+        for item in data:
+            c = item["code"]
+            if c not in history_store:
+                history_store[c] = []
+            history_store[c].append([now_ts, item["premium"]])
+            history_store[c] = history_store[c][-480:]
+        save_history()
 
     is_weekend = now.weekday() >= 5
     total_min = now.hour * 60 + now.minute
@@ -166,7 +165,8 @@ async def update_cache():
 
     if not is_trading and not is_weekend:
         today = now.strftime("%Y-%m-%d")
-        if today != last_daily_save:
+        has_iopv = any(item.get("iopv") for item in data)
+        if today != last_daily_save and has_iopv:
             with sqlite3.connect(str(DB_PATH)) as conn:
                 for item in data:
                     conn.execute(
@@ -206,7 +206,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="ETF Premium Tracker", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST"], allow_headers=["*"])
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 WATCHLIST_FILE = Path(__file__).parent / "watchlist.txt"
@@ -231,6 +231,19 @@ async def get_watchlist():
     return {"codes": codes}
 
 
+@app.post("/api/watchlist/toggle/{code}")
+async def toggle_watchlist(code: str):
+    codes = []
+    if WATCHLIST_FILE.exists():
+        codes = [line.strip() for line in WATCHLIST_FILE.read_text().splitlines() if line.strip()]
+    if code in codes:
+        codes.remove(code)
+    else:
+        codes.append(code)
+    WATCHLIST_FILE.write_text("\n".join(codes) + "\n")
+    return {"codes": codes, "in_watchlist": code in codes}
+
+
 @app.get("/api/etfs")
 async def get_etfs():
     return cached_response
@@ -243,7 +256,8 @@ async def get_fees():
 
 @app.get("/api/history/{code}")
 async def get_history(code: str):
-    return {"code": code, "history": history_store.get(code, [])}
+    async with history_lock:
+        return {"code": code, "history": history_store.get(code, [])}
 
 
 @app.get("/api/daily/{code}")

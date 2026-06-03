@@ -11,31 +11,6 @@ const API = '/api/etfs';
 const HISTORY_API = '/api/daily';
 const WATCHLIST_API = '/api/watchlist';
 
-const ETFS = [
-  { code: "513100", name: "纳指ETF国泰", exchange: "SH", category: "nasdaq", manager: "国泰基金" },
-  { code: "159941", name: "纳指ETF广发", exchange: "SZ", category: "nasdaq", manager: "广发基金" },
-  { code: "513300", name: "纳斯达克ETF华夏", exchange: "SH", category: "nasdaq", manager: "华夏基金" },
-  { code: "159632", name: "纳斯达克ETF华安", exchange: "SZ", category: "nasdaq", manager: "华安基金" },
-  { code: "513110", name: "纳指ETF华泰柏瑞", exchange: "SH", category: "nasdaq", manager: "华泰柏瑞基金" },
-  { code: "159696", name: "纳指ETF易方达", exchange: "SZ", category: "nasdaq", manager: "易方达基金" },
-  { code: "159501", name: "纳指ETF嘉实", exchange: "SZ", category: "nasdaq", manager: "嘉实基金" },
-  { code: "159513", name: "纳斯达克100ETF大成", exchange: "SZ", category: "nasdaq", manager: "大成基金" },
-  { code: "159659", name: "纳斯达克100ETF招商", exchange: "SZ", category: "nasdaq", manager: "招商基金" },
-  { code: "159660", name: "纳指ETF汇添富", exchange: "SZ", category: "nasdaq", manager: "汇添富基金" },
-  { code: "513390", name: "纳指100ETF博时", exchange: "SH", category: "nasdaq", manager: "博时基金" },
-  { code: "513870", name: "纳指ETF富国", exchange: "SH", category: "nasdaq", manager: "富国基金" },
-  { code: "159509", name: "纳指科技ETF景顺", exchange: "SZ", category: "nasdaq", manager: "景顺长城基金" },
-  { code: "513290", name: "纳指生物科技ETF汇添富", exchange: "SH", category: "nasdaq", manager: "汇添富基金" },
-  { code: "513500", name: "标普500ETF博时", exchange: "SH", category: "sp500", manager: "博时基金" },
-  { code: "159655", name: "标普500ETF华夏", exchange: "SZ", category: "sp500", manager: "华夏基金" },
-  { code: "159612", name: "标普500ETF国泰", exchange: "SZ", category: "sp500", manager: "国泰基金" },
-  { code: "513650", name: "标普500ETF南方", exchange: "SH", category: "sp500", manager: "南方基金" },
-  { code: "159502", name: "标普生物科技ETF嘉实", exchange: "SZ", category: "sp500", manager: "嘉实基金" },
-  { code: "159518", name: "标普油气ETF嘉实", exchange: "SZ", category: "sp500", manager: "嘉实基金" },
-  { code: "159529", name: "标普消费ETF景顺", exchange: "SZ", category: "sp500", manager: "景顺长城基金" },
-  { code: "513350", name: "标普油气ETF富国", exchange: "SH", category: "sp500", manager: "富国基金" },
-];
-
 function premiumLevel(p) {
   const abs = Math.abs(p);
   if (abs > 5) return 'purple';
@@ -79,15 +54,17 @@ function renderCard(etf) {
   const changeSign = etf.change_pct >= 0 ? '+' : '';
   const fee = etf.fee;
   const feeText = fee && fee.total != null ? fee.total.toFixed(2) + '%' : '--';
+  const isWL = watchlist.has(etf.code);
   return `
-    <div class="list-item premium-${level}" data-code="${etf.code}" data-premium="${premium}">
+    <div class="list-item premium-${level}${isWL ? ' watchlist' : ''}" data-code="${etf.code}" data-premium="${premium}">
+      <span class="li-star" data-code="${etf.code}">${isWL ? '★' : '☆'}</span>
       <span class="li-code">${etf.code}</span>
       <span class="li-name">${etf.name}</span>
       <span class="li-manager">${etf.manager}</span>
       <span class="li-fee">${feeText}</span>
       <span class="li-price">${etf.price ?? '--'}</span>
       <span class="li-change ${changeClass}">${changeSign}${(etf.change_pct ?? 0).toFixed(2)}%</span>
-      <span class="li-premium">${premium >= 0 ? '+' : ''}${premium.toFixed(2)}%</span>
+      <span class="li-premium">${premium != null ? (premium >= 0 ? '+' : '') + premium.toFixed(2) + '%' : 'N/A'}</span>
       <span class="li-label">${premiumLabel(premium)}</span>
     </div>
   `;
@@ -101,19 +78,34 @@ function renderGrid(data, containerId, sortSelectId) {
     switch (sortBy) {
       case 'premium-desc': return (b.premium ?? 0) - (a.premium ?? 0);
       case 'premium-asc': return (a.premium ?? 0) - (b.premium ?? 0);
+      case 'fee-desc': return ((b.fee && b.fee.total) || 0) - ((a.fee && a.fee.total) || 0);
+      case 'fee-asc': return ((a.fee && a.fee.total) || 0) - ((b.fee && b.fee.total) || 0);
       case 'code': return a.code.localeCompare(b.code);
       case 'name': return a.name.localeCompare(b.name);
       default: return 0;
     }
   };
 
-  const sorted = data.filter(e => watchlist.has(e.code)).sort(sortFn);
+  const pinned = data.filter(e => watchlist.has(e.code)).sort(sortFn);
+  const rest = data.filter(e => !watchlist.has(e.code)).sort(sortFn);
+  const sorted = [...pinned, ...rest];
 
   container.innerHTML = sorted.map(etf => renderCard(etf)).join('');
 
+  // star toggle
+  container.querySelectorAll('.li-star').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleWatchlist(el.dataset.code);
+    });
+  });
+
   // click handler for chart modal
   container.querySelectorAll('.list-item').forEach(el => {
-    el.addEventListener('click', () => openChart(el.dataset.code));
+    el.addEventListener('click', (e) => {
+      if (e.target.classList.contains('li-star')) return;
+      openChart(el.dataset.code);
+    });
   });
 }
 
@@ -146,10 +138,8 @@ function updateMarketStatus(status) {
 }
 
 function updateCounts(nasdaq, sp500) {
-  const nasdaqFiltered = nasdaq.filter(e => watchlist.has(e.code));
-  const sp500Filtered = sp500.filter(e => watchlist.has(e.code));
-  document.getElementById('nasdaqCount').textContent = `${nasdaqFiltered.length} 只`;
-  document.getElementById('sp500Count').textContent = `${sp500Filtered.length} 只`;
+  document.getElementById('nasdaqCount').textContent = `${nasdaq.length} 只`;
+  document.getElementById('sp500Count').textContent = `${sp500.length} 只`;
 }
 
 async function fetchData(forceRender = false) {
@@ -170,6 +160,20 @@ async function fetchData(forceRender = false) {
     }
   } catch (err) {
     console.error('fetch error:', err);
+    showToast('数据加载失败，请检查网络连接');
+  }
+}
+
+async function toggleWatchlist(code) {
+  try {
+    const resp = await fetch(`/api/watchlist/toggle/${code}`, { method: 'POST' });
+    const data = await resp.json();
+    watchlist = new Set(data.codes);
+    // re-render with updated watchlist
+    renderGrid(allData.nasdaq, 'nasdaqGrid', 'nasdaqSort');
+    renderGrid(allData.sp500, 'sp500Grid', 'sp500Sort');
+  } catch (err) {
+    console.error('watchlist toggle error:', err);
   }
 }
 
@@ -179,7 +183,8 @@ async function openChart(code) {
   const title = document.getElementById('modalTitle');
   const canvas = document.getElementById('premiumChart');
 
-  const etf = ETFS.find(e => e.code === code);
+  const allEtfs = [...(allData.nasdaq || []), ...(allData.sp500 || [])];
+  const etf = allEtfs.find(e => e.code === code);
   title.textContent = `${etf ? etf.name : code} (${code}) · 历史每日溢价率`;
 
   overlay.classList.add('active');
@@ -189,6 +194,7 @@ async function openChart(code) {
     const data = await resp.json();
     renderChart(data.daily || []);
   } catch {
+    showToast('历史数据加载失败');
     renderChart([]);
   }
 }
