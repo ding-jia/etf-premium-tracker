@@ -30,7 +30,7 @@
   --bb-white: #ffffff;
   --bb-font: "SF Mono", "Cascadia Code", "Consolas", "Courier New", "Source Code Pro", monospace;
   --bb-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", monospace;
-  font-size: 14px;
+  font-size: 18px;
 }
 
 [data-theme="bloomberg"] body {
