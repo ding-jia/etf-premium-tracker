@@ -184,7 +184,7 @@ main {
 .columns {
   display: flex;
   gap: 16px;
-  min-height: 500px;
+  align-items: flex-start;
 }
 
 .list-panel {
@@ -216,7 +216,7 @@ main {
   border-radius: var(--radius);
   overflow: hidden;
   aspect-ratio: 1 / 1;
-  max-height: calc(100vh - 120px);
+  height: fit-content;
 }
 
 .chart-header {

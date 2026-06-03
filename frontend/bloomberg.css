@@ -161,7 +161,7 @@
 [data-theme="bloomberg"] .columns {
   display: flex;
   gap: 6px;
-  min-height: 520px;
+  align-items: flex-start;
 }
 
 [data-theme="bloomberg"] .list-panel {
@@ -193,7 +193,7 @@
   border-radius: 0;
   overflow: hidden;
   aspect-ratio: 1 / 1;
-  max-height: calc(100vh - 100px);
+  height: fit-content;
 }
 
 [data-theme="bloomberg"] .chart-header {
