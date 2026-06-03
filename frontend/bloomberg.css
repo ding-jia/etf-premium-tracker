@@ -1,0 +1,583 @@
+/* ===== Bloomberg Terminal Theme ===== */
+
+[data-theme="bloomberg"] * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+[data-theme="bloomberg"] {
+  --bb-bg: #0c0c0c;
+  --bb-bg-panel: #121212;
+  --bb-bg-row: #141414;
+  --bb-bg-row-alt: #181818;
+  --bb-bg-hover: #1c1c1c;
+  --bb-border: #2a2a2a;
+  --bb-border-light: #1f1f1f;
+  --bb-text: #c8c8c8;
+  --bb-text-dim: #787878;
+  --bb-text-bright: #e8e8e8;
+  --bb-amber: #ff8c00;
+  --bb-amber-dim: #cc6600;
+  --bb-green: #00cc66;
+  --bb-green-bg: rgba(0, 204, 102, 0.08);
+  --bb-red: #ff4444;
+  --bb-red-bg: rgba(255, 68, 68, 0.08);
+  --bb-purple: #bb86fc;
+  --bb-purple-bg: rgba(187, 134, 252, 0.1);
+  --bb-blue: #4a90d9;
+  --bb-yellow: #ffd700;
+  --bb-white: #ffffff;
+  --bb-font: "SF Mono", "Cascadia Code", "Consolas", "Courier New", "Source Code Pro", monospace;
+  --bb-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", monospace;
+  font-size: 13px;
+}
+
+[data-theme="bloomberg"] body {
+  font-family: var(--bb-font);
+  background: var(--bb-bg);
+  color: var(--bb-text);
+  min-height: 100vh;
+  line-height: 1.3;
+}
+
+/* ===== Header ===== */
+[data-theme="bloomberg"] header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  border-bottom: 2px solid var(--bb-amber);
+  background: var(--bb-bg-panel);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+[data-theme="bloomberg"] .logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bb-amber);
+}
+
+[data-theme="bloomberg"] .logo svg { display: none; }
+
+[data-theme="bloomberg"] .logo h1 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--bb-amber);
+  font-family: var(--bb-font);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+[data-theme="bloomberg"] .logo h1::before {
+  content: "◆ ";
+  color: var(--bb-green);
+  font-size: 0.7rem;
+}
+
+[data-theme="bloomberg"] .subtitle {
+  color: var(--bb-text-dim);
+  font-size: 0.7rem;
+  padding-left: 12px;
+  border-left: 1px solid var(--bb-border);
+  font-family: var(--bb-font);
+  letter-spacing: 0.5px;
+}
+
+[data-theme="bloomberg"] .header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+[data-theme="bloomberg"] .status-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 10px;
+  border-radius: 0;
+  font-size: 0.7rem;
+  font-family: var(--bb-font);
+  background: var(--bb-green-bg);
+  border: 1px solid var(--bb-green);
+  color: var(--bb-green);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+[data-theme="bloomberg"] .status-badge.closed {
+  background: rgba(120, 120, 120, 0.08);
+  border-color: #444;
+  color: #666;
+}
+
+[data-theme="bloomberg"] .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bb-green);
+}
+
+[data-theme="bloomberg"] .status-badge.closed .status-dot {
+  background: #666;
+}
+
+[data-theme="bloomberg"] .update-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--bb-text-dim);
+  font-size: 0.68rem;
+  font-family: var(--bb-font);
+}
+
+[data-theme="bloomberg"] #refreshBtn {
+  background: none;
+  border: 1px solid var(--bb-border);
+  color: var(--bb-text-dim);
+  padding: 4px;
+  border-radius: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+[data-theme="bloomberg"] #refreshBtn:hover {
+  background: var(--bb-bg-hover);
+  color: var(--bb-amber);
+  border-color: var(--bb-amber);
+}
+
+/* ===== Main Layout ===== */
+[data-theme="bloomberg"] main {
+  max-width: 100%;
+  margin: 0;
+  padding: 8px;
+}
+
+[data-theme="bloomberg"] .columns {
+  display: flex;
+  gap: 8px;
+}
+
+[data-theme="bloomberg"] .columns > section {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Section Header ===== */
+[data-theme="bloomberg"] .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  padding: 4px 8px;
+  background: var(--bb-bg-panel);
+  border: 1px solid var(--bb-border);
+  flex-shrink: 0;
+}
+
+[data-theme="bloomberg"] .section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-family: var(--bb-font);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+[data-theme="bloomberg"] .badge {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 0;
+  letter-spacing: 1px;
+  font-family: var(--bb-font);
+}
+
+[data-theme="bloomberg"] .badge-nasdaq {
+  background: #000;
+  color: var(--bb-blue);
+  border: 1px solid var(--bb-blue);
+}
+
+[data-theme="bloomberg"] .badge-sp500 {
+  background: #000;
+  color: var(--bb-amber);
+  border: 1px solid var(--bb-amber);
+}
+
+[data-theme="bloomberg"] .section-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+[data-theme="bloomberg"] .count {
+  color: var(--bb-text-dim);
+  font-size: 0.65rem;
+  font-family: var(--bb-font);
+}
+
+[data-theme="bloomberg"] .sort-select {
+  background: var(--bb-bg);
+  border: 1px solid var(--bb-border);
+  color: var(--bb-text);
+  padding: 2px 6px;
+  border-radius: 0;
+  font-size: 0.65rem;
+  font-family: var(--bb-font);
+  cursor: pointer;
+  outline: none;
+}
+
+[data-theme="bloomberg"] .sort-select:focus {
+  border-color: var(--bb-amber);
+}
+
+/* ===== List Header ===== */
+[data-theme="bloomberg"] .list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--bb-amber);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  background: var(--bb-bg-panel);
+  border: 1px solid var(--bb-border);
+  border-bottom: 2px solid var(--bb-amber);
+  margin-bottom: 0;
+  font-family: var(--bb-font);
+}
+
+[data-theme="bloomberg"] .lh-star    { min-width: 22px; text-align: center; }
+[data-theme="bloomberg"] .lh-code    { min-width: 50px; }
+[data-theme="bloomberg"] .lh-name    { min-width: 0; flex: 1; }
+[data-theme="bloomberg"] .lh-manager { min-width: 60px; flex-shrink: 0; }
+[data-theme="bloomberg"] .lh-fee     { min-width: 42px; text-align: right; flex-shrink: 0; }
+[data-theme="bloomberg"] .lh-price   { min-width: 44px; text-align: right; flex-shrink: 0; }
+[data-theme="bloomberg"] .lh-change  { min-width: 48px; text-align: right; flex-shrink: 0; }
+[data-theme="bloomberg"] .lh-premium { min-width: 56px; text-align: right; flex-shrink: 0; }
+[data-theme="bloomberg"] .lh-label   { min-width: 40px; flex-shrink: 0; }
+
+/* ===== List ===== */
+[data-theme="bloomberg"] .list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow-y: auto;
+  flex: 1;
+  border: 1px solid var(--bb-border);
+  border-top: none;
+}
+
+[data-theme="bloomberg"] .list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  background: var(--bb-bg-row);
+  border: none;
+  border-bottom: 1px solid var(--bb-border-light);
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  font-size: 0.73rem;
+  font-family: var(--bb-font);
+  transition: background 0.1s;
+  letter-spacing: -0.2px;
+}
+
+[data-theme="bloomberg"] .list-item:nth-child(even) {
+  background: var(--bb-bg-row-alt);
+}
+
+[data-theme="bloomberg"] .list-item:hover {
+  background: var(--bb-bg-hover);
+  border-left-color: var(--bb-amber);
+}
+
+[data-theme="bloomberg"] .list-item.watchlist {
+  background: #1a1200;
+  border-left-color: var(--bb-amber);
+}
+
+[data-theme="bloomberg"] .list-item.watchlist:nth-child(even) {
+  background: #1c1400;
+}
+
+[data-theme="bloomberg"] .list-item.watchlist:hover {
+  background: #221800;
+}
+
+[data-theme="bloomberg"] .list-item.best-fee {
+  background: #001a0d;
+  border-left-color: var(--bb-green);
+}
+
+[data-theme="bloomberg"] .list-item.best-fee:nth-child(even) {
+  background: #001f10;
+}
+
+[data-theme="bloomberg"] .list-item.premium-up    { border-left-color: var(--bb-red); }
+[data-theme="bloomberg"] .list-item.premium-down  { border-left-color: var(--bb-green); }
+[data-theme="bloomberg"] .list-item.premium-purple{ border-left-color: var(--bb-purple); }
+
+[data-theme="bloomberg"] .li-star {
+  cursor: pointer;
+  color: var(--bb-text-dim);
+  font-size: 0.8rem;
+  min-width: 22px;
+  padding: 2px;
+  text-align: center;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+[data-theme="bloomberg"] .li-star:hover { color: var(--bb-yellow); }
+[data-theme="bloomberg"] .list-item.watchlist .li-star { color: var(--bb-yellow); }
+
+[data-theme="bloomberg"] .li-code {
+  font-weight: 600;
+  color: var(--bb-text-bright);
+  min-width: 50px;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme="bloomberg"] .li-name {
+  color: var(--bb-text);
+  font-weight: 400;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme="bloomberg"] .li-manager {
+  color: var(--bb-text-dim);
+  font-size: 0.65rem;
+  flex-shrink: 0;
+  min-width: 60px;
+}
+
+[data-theme="bloomberg"] .li-fee {
+  color: var(--bb-text-dim);
+  font-size: 0.7rem;
+  min-width: 42px;
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme="bloomberg"] .list-item.best-fee .li-fee {
+  color: var(--bb-green);
+  font-weight: 700;
+}
+
+[data-theme="bloomberg"] .li-price {
+  color: var(--bb-text);
+  min-width: 44px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme="bloomberg"] .li-change {
+  font-weight: 500;
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme="bloomberg"] .li-change.up   { color: var(--bb-red); }
+[data-theme="bloomberg"] .li-change.down { color: var(--bb-green); }
+
+[data-theme="bloomberg"] .li-premium {
+  font-weight: 700;
+  font-size: 0.82rem;
+  min-width: 56px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+[data-theme="bloomberg"] .premium-up .li-premium     { color: var(--bb-red); }
+[data-theme="bloomberg"] .premium-down .li-premium   { color: var(--bb-green); }
+[data-theme="bloomberg"] .premium-purple .li-premium { color: var(--bb-purple); }
+
+[data-theme="bloomberg"] .li-label {
+  font-size: 0.6rem;
+  padding: 1px 5px;
+  border-radius: 0;
+  flex-shrink: 0;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+[data-theme="bloomberg"] .premium-up .li-label     { background: var(--bb-red-bg); color: var(--bb-red); border: 1px solid var(--bb-red); }
+[data-theme="bloomberg"] .premium-down .li-label   { background: var(--bb-green-bg); color: var(--bb-green); border: 1px solid var(--bb-green); }
+[data-theme="bloomberg"] .premium-purple .li-label { background: var(--bb-purple-bg); color: var(--bb-purple); border: 1px solid var(--bb-purple); }
+
+/* ===== Theme Toggle ===== */
+[data-theme="bloomberg"] .theme-toggle {
+  background: none;
+  border: 1px solid var(--bb-border);
+  color: var(--bb-text-dim);
+  padding: 3px 8px;
+  border-radius: 0;
+  font-size: 0.65rem;
+  font-family: var(--bb-font);
+  cursor: pointer;
+  letter-spacing: 0.5px;
+}
+
+[data-theme="bloomberg"] .theme-toggle:hover {
+  color: var(--bb-amber);
+  border-color: var(--bb-amber);
+}
+
+/* ===== Footer ===== */
+[data-theme="bloomberg"] footer {
+  max-width: 100%;
+  margin: 0;
+  padding: 6px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--bb-text-dim);
+  font-size: 0.6rem;
+  font-family: var(--bb-font);
+  border-top: 2px solid var(--bb-amber);
+  background: var(--bb-bg-panel);
+  letter-spacing: 0.3px;
+}
+
+[data-theme="bloomberg"] footer a {
+  color: var(--bb-amber);
+  text-decoration: none;
+}
+
+[data-theme="bloomberg"] footer a:hover {
+  color: var(--bb-white);
+}
+
+/* ===== Modal ===== */
+[data-theme="bloomberg"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(2px);
+}
+
+[data-theme="bloomberg"] .modal {
+  background: var(--bb-bg-panel);
+  border: 2px solid var(--bb-border);
+  border-radius: 0;
+}
+
+[data-theme="bloomberg"] .modal-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--bb-amber);
+  background: var(--bb-bg);
+}
+
+[data-theme="bloomberg"] .modal-header h3 {
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: var(--bb-font);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--bb-amber);
+}
+
+[data-theme="bloomberg"] .modal-close {
+  color: var(--bb-text-dim);
+}
+
+[data-theme="bloomberg"] .modal-close:hover { color: var(--bb-red); }
+
+[data-theme="bloomberg"] .modal-body {
+  padding: 8px 12px 12px;
+}
+
+/* ===== Loading Skeleton ===== */
+[data-theme="bloomberg"] .list-item.loading .li-code,
+[data-theme="bloomberg"] .list-item.loading .li-name,
+[data-theme="bloomberg"] .list-item.loading .li-manager,
+[data-theme="bloomberg"] .list-item.loading .li-price,
+[data-theme="bloomberg"] .list-item.loading .li-change,
+[data-theme="bloomberg"] .list-item.loading .li-premium,
+[data-theme="bloomberg"] .list-item.loading .li-label {
+  animation: bb-shimmer 1.5s infinite;
+  background: linear-gradient(90deg, #1a1a1a 25%, #222 50%, #1a1a1a 75%);
+  background-size: 200% 100%;
+  border-radius: 0;
+  color: transparent !important;
+}
+
+@keyframes bb-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ===== Bloomberg Status Bar (top) ===== */
+[data-theme="bloomberg"] .bb-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 2px 12px;
+  background: var(--bb-amber);
+  color: #000;
+  font-size: 0.63rem;
+  font-family: var(--bb-font);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+[data-theme="bloomberg"] .bb-statusbar span {
+  flex-shrink: 0;
+}
+
+[data-theme="bloomberg"] .bb-statusbar .bb-sep {
+  color: rgba(0,0,0,0.3);
+}
+
+/* ===== Toast ===== */
+[data-theme="bloomberg"] #toastContainer div {
+  background: #1a1a1a;
+  border: 1px solid var(--bb-red);
+  color: var(--bb-red);
+  font-family: var(--bb-font);
+  border-radius: 0;
+  font-size: 0.7rem;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 1000px) {
+  [data-theme="bloomberg"] .li-manager { display: none; }
+  [data-theme="bloomberg"] .lh-manager { display: none; }
+  [data-theme="bloomberg"] .li-fee { display: none; }
+  [data-theme="bloomberg"] .lh-fee { display: none; }
+}
+
+@media (max-width: 700px) {
+  [data-theme="bloomberg"] .columns { flex-direction: column; }
+  [data-theme="bloomberg"] .li-price { display: none; }
+  [data-theme="bloomberg"] .lh-price { display: none; }
+  [data-theme="bloomberg"] .li-change { display: none; }
+  [data-theme="bloomberg"] .lh-change { display: none; }
+  [data-theme="bloomberg"] .li-label { display: none; }
+  [data-theme="bloomberg"] .lh-label { display: none; }
+}

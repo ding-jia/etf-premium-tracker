@@ -1,3 +1,17 @@
+let theme = localStorage.getItem('theme') || 'light';
+
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('themeToggle');
+  if (btn) btn.textContent = theme === 'bloomberg' ? 'LIT' : 'BBG';
+}
+
+function toggleTheme() {
+  theme = theme === 'bloomberg' ? 'light' : 'bloomberg';
+  localStorage.setItem('theme', theme);
+  applyTheme();
+}
+
 let autoRefresh = true;
 let refreshInterval = null;
 let statusInterval = null;
@@ -363,6 +377,9 @@ window.addEventListener('beforeunload', () => {
 
 // event listeners
 document.addEventListener('DOMContentLoaded', async () => {
+  applyTheme();
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
   renderSkeleton('nasdaqGrid', 7);
   renderSkeleton('sp500Grid', 3);
 

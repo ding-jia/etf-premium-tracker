@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ETF 溢价率监控</title>
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
+<link rel="stylesheet" href="bloomberg.css?v=1">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -24,6 +25,7 @@
       <span class="status-dot"></span>
       <span id="statusText">加载中</span>
     </div>
+    <button class="theme-toggle" id="themeToggle" title="切换 Bloomberg 终端风格">BBG</button>
     <div class="update-info">
       <span id="updateTime">--</span>
       <button id="refreshBtn" title="手动刷新">
