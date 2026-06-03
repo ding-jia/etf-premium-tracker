@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ETF 溢价率监控</title>
-<link rel="stylesheet" href="style.css?v=3">
-<link rel="stylesheet" href="bloomberg.css?v=1">
+<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="bloomberg.css?v=2">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -39,62 +39,72 @@
 
 <main>
   <div class="columns">
-  <section id="nasdaqSection">
-    <div class="section-header">
-      <h2><span class="badge badge-nasdaq">NASDAQ</span> 纳指 ETF</h2>
-      <div class="section-controls">
-        <span class="count" id="nasdaqCount">0 只</span>
-        <select id="nasdaqSort" class="sort-select">
-          <option value="premium-desc">溢价率 ↓</option>
-          <option value="premium-asc">溢价率 ↑</option>
-          <option value="fee-desc">费率 ↓</option>
-          <option value="fee-asc">费率 ↑</option>
-          <option value="code">代码</option>
-          <option value="name">名称</option>
-        </select>
+  <section class="list-panel">
+    <div id="nasdaqSection">
+      <div class="section-header">
+        <h2><span class="badge badge-nasdaq">NASDAQ</span> 纳指 ETF</h2>
+        <div class="section-controls">
+          <span class="count" id="nasdaqCount">0 只</span>
+          <select id="nasdaqSort" class="sort-select">
+            <option value="premium-desc">溢价率 ↓</option>
+            <option value="premium-asc">溢价率 ↑</option>
+            <option value="fee-desc">费率 ↓</option>
+            <option value="fee-asc">费率 ↑</option>
+            <option value="code">代码</option>
+            <option value="name">名称</option>
+          </select>
+        </div>
       </div>
+      <div class="list-header">
+        <span class="lh-star"></span>
+        <span class="lh-code">代码</span>
+        <span class="lh-name">名称</span>
+        <span class="lh-manager">管理人</span>
+        <span class="lh-fee">费率</span>
+        <span class="lh-price">现价</span>
+        <span class="lh-change">涨跌</span>
+        <span class="lh-premium">溢价率</span>
+        <span class="lh-label">状态</span>
+      </div>
+      <div class="list" id="nasdaqGrid"></div>
     </div>
-    <div class="list-header">
-      <span class="lh-star"></span>
-      <span class="lh-code">代码</span>
-      <span class="lh-name">名称</span>
-      <span class="lh-manager">管理人</span>
-      <span class="lh-fee">费率</span>
-      <span class="lh-price">现价</span>
-      <span class="lh-change">涨跌</span>
-      <span class="lh-premium">溢价率</span>
-      <span class="lh-label">状态</span>
+    <div id="sp500Section">
+      <div class="section-header">
+        <h2><span class="badge badge-sp500">S&P 500</span> 标普 ETF</h2>
+        <div class="section-controls">
+          <span class="count" id="sp500Count">0 只</span>
+          <select id="sp500Sort" class="sort-select">
+            <option value="premium-desc">溢价率 ↓</option>
+            <option value="premium-asc">溢价率 ↑</option>
+            <option value="fee-desc">费率 ↓</option>
+            <option value="fee-asc">费率 ↑</option>
+            <option value="code">代码</option>
+            <option value="name">名称</option>
+          </select>
+        </div>
+      </div>
+      <div class="list-header">
+        <span class="lh-star"></span>
+        <span class="lh-code">代码</span>
+        <span class="lh-name">名称</span>
+        <span class="lh-manager">管理人</span>
+        <span class="lh-fee">费率</span>
+        <span class="lh-price">现价</span>
+        <span class="lh-change">涨跌</span>
+        <span class="lh-premium">溢价率</span>
+        <span class="lh-label">状态</span>
+      </div>
+      <div class="list" id="sp500Grid"></div>
     </div>
-    <div class="list" id="nasdaqGrid"></div>
   </section>
 
-  <section id="sp500Section">
-    <div class="section-header">
-      <h2><span class="badge badge-sp500">S&P 500</span> 标普 ETF</h2>
-      <div class="section-controls">
-        <span class="count" id="sp500Count">0 只</span>
-        <select id="sp500Sort" class="sort-select">
-          <option value="premium-desc">溢价率 ↓</option>
-          <option value="premium-asc">溢价率 ↑</option>
-          <option value="fee-desc">费率 ↓</option>
-          <option value="fee-asc">费率 ↑</option>
-          <option value="code">代码</option>
-          <option value="name">名称</option>
-        </select>
-      </div>
+  <section class="chart-panel" id="chartPanel">
+    <div class="chart-header">
+      <h3 id="chartTitle">标普500ETF博时 (513500)</h3>
     </div>
-    <div class="list-header">
-      <span class="lh-star"></span>
-      <span class="lh-code">代码</span>
-      <span class="lh-name">名称</span>
-      <span class="lh-manager">管理人</span>
-      <span class="lh-fee">费率</span>
-      <span class="lh-price">现价</span>
-      <span class="lh-change">涨跌</span>
-      <span class="lh-premium">溢价率</span>
-      <span class="lh-label">状态</span>
+    <div class="chart-body">
+      <canvas id="premiumChart"></canvas>
     </div>
-    <div class="list" id="sp500Grid"></div>
   </section>
   </div>
 </main>
@@ -105,18 +115,6 @@
   <span>数据每 30 秒轮询 · 前端每 10 分钟刷新 · <a href="#" id="toggleAuto">暂停</a></span>
 </footer>
 
-<div class="modal-overlay" id="chartModal">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modalTitle">历史溢价率</h3>
-      <button class="modal-close" id="modalClose">&times;</button>
-    </div>
-    <div class="modal-body">
-      <canvas id="premiumChart"></canvas>
-    </div>
-  </div>
-</div>
-
-<script src="script.js?v=2"></script>
+<script src="script.js?v=3"></script>
 </body>
 </html>

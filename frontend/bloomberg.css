@@ -30,7 +30,7 @@
   --bb-white: #ffffff;
   --bb-font: "SF Mono", "Cascadia Code", "Consolas", "Courier New", "Source Code Pro", monospace;
   --bb-font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", monospace;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 [data-theme="bloomberg"] body {
@@ -155,19 +155,75 @@
 [data-theme="bloomberg"] main {
   max-width: 100%;
   margin: 0;
-  padding: 8px;
+  padding: 6px;
 }
 
 [data-theme="bloomberg"] .columns {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  height: calc(100vh - 130px);
+  min-height: 520px;
 }
 
-[data-theme="bloomberg"] .columns > section {
-  flex: 1;
+[data-theme="bloomberg"] .list-panel {
+  flex: 0 0 60%;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+[data-theme="bloomberg"] .list-panel > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+[data-theme="bloomberg"] .list-panel .list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+[data-theme="bloomberg"] .chart-panel {
+  flex: 0 0 40%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bb-bg-panel);
+  border: 1px solid var(--bb-border);
+  border-radius: 0;
+  overflow: hidden;
+}
+
+[data-theme="bloomberg"] .chart-header {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--bb-amber);
+  background: var(--bb-bg);
+  flex-shrink: 0;
+}
+
+[data-theme="bloomberg"] .chart-header h3 {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--bb-amber);
+  font-family: var(--bb-font);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+[data-theme="bloomberg"] .chart-body {
+  flex: 1;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+[data-theme="bloomberg"] #premiumChart {
+  width: 100%;
+  height: 100%;
 }
 
 /* ===== Section Header ===== */
@@ -318,6 +374,12 @@
 
 [data-theme="bloomberg"] .list-item.watchlist:hover {
   background: #221800;
+}
+
+[data-theme="bloomberg"] .list-item.selected {
+  background: #0a1a2e;
+  border-left-color: var(--bb-blue);
+  border-left-width: 3px;
 }
 
 [data-theme="bloomberg"] .list-item.best-fee {
@@ -471,43 +533,6 @@
 
 [data-theme="bloomberg"] footer a:hover {
   color: var(--bb-white);
-}
-
-/* ===== Modal ===== */
-[data-theme="bloomberg"] .modal-overlay {
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(2px);
-}
-
-[data-theme="bloomberg"] .modal {
-  background: var(--bb-bg-panel);
-  border: 2px solid var(--bb-border);
-  border-radius: 0;
-}
-
-[data-theme="bloomberg"] .modal-header {
-  padding: 8px 12px;
-  border-bottom: 1px solid var(--bb-amber);
-  background: var(--bb-bg);
-}
-
-[data-theme="bloomberg"] .modal-header h3 {
-  font-size: 0.8rem;
-  font-weight: 600;
-  font-family: var(--bb-font);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--bb-amber);
-}
-
-[data-theme="bloomberg"] .modal-close {
-  color: var(--bb-text-dim);
-}
-
-[data-theme="bloomberg"] .modal-close:hover { color: var(--bb-red); }
-
-[data-theme="bloomberg"] .modal-body {
-  padding: 8px 12px 12px;
 }
 
 /* ===== Loading Skeleton ===== */

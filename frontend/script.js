@@ -212,26 +212,30 @@ async function toggleWatchlist(code) {
   }
 }
 
-async function openChart(code) {
+async function selectETF(code) {
   currentChartCode = code;
-  const overlay = document.getElementById('chartModal');
-  const title = document.getElementById('modalTitle');
-  const canvas = document.getElementById('premiumChart');
-
+  const title = document.getElementById('chartTitle');
   const allEtfs = [...(allData.nasdaq || []), ...(allData.sp500 || [])];
   const etf = allEtfs.find(e => e.code === code);
-  title.textContent = `${etf ? etf.name : code} (${code}) · 历史每日溢价率`;
+  title.textContent = `${etf ? etf.name : code} (${code})`;
 
-  overlay.classList.add('active');
+  // highlight selected row
+  document.querySelectorAll('.list-item.selected').forEach(el => el.classList.remove('selected'));
+  const row = document.querySelector(`.list-item[data-code="${code}"]`);
+  if (row) row.classList.add('selected');
 
   try {
     const resp = await fetch(`${HISTORY_API}/${code}`);
     const data = await resp.json();
     renderChart(data.daily || []);
   } catch (err) {
-    handleError('openChart', err, '历史数据加载失败');
+    handleError('selectETF', err, '历史数据加载失败');
     renderChart([]);
   }
+}
+
+async function openChart(code) {
+  selectETF(code);
 }
 
 function renderChart(records) {
@@ -329,7 +333,6 @@ function renderChart(records) {
 }
 
 function closeChart() {
-  document.getElementById('chartModal').classList.remove('active');
   if (chartInstance) {
     chartInstance.destroy();
     chartInstance = null;
@@ -391,7 +394,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     handleError('watchlistInit', err, null);
   }
 
-  fetchData(true);
+  await fetchData(true);
+  selectETF('513500');
   checkMarketStatus();
   statusInterval = setInterval(checkMarketStatus, 60000);
 
@@ -414,15 +418,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (!autoRefresh) {
       stopAutoRefresh();
     }
-  });
-
-  document.getElementById('modalClose').addEventListener('click', closeChart);
-  document.getElementById('chartModal').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) closeChart();
-  });
-
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeChart();
   });
 
   document.getElementById('nasdaqSort').addEventListener('change', () => {
