@@ -30,15 +30,10 @@ ETFS = [
     {"code": "513390", "name": "纳指100ETF博时", "exchange": "SH", "category": "nasdaq", "manager": "博时基金"},
     {"code": "513870", "name": "纳指ETF富国", "exchange": "SH", "category": "nasdaq", "manager": "富国基金"},
     {"code": "159509", "name": "纳指科技ETF景顺", "exchange": "SZ", "category": "nasdaq", "manager": "景顺长城基金"},
-    {"code": "513290", "name": "纳指生物科技ETF汇添富", "exchange": "SH", "category": "nasdaq", "manager": "汇添富基金"},
     {"code": "513500", "name": "标普500ETF博时", "exchange": "SH", "category": "sp500", "manager": "博时基金"},
     {"code": "159655", "name": "标普500ETF华夏", "exchange": "SZ", "category": "sp500", "manager": "华夏基金"},
     {"code": "159612", "name": "标普500ETF国泰", "exchange": "SZ", "category": "sp500", "manager": "国泰基金"},
     {"code": "513650", "name": "标普500ETF南方", "exchange": "SH", "category": "sp500", "manager": "南方基金"},
-    {"code": "159502", "name": "标普生物科技ETF嘉实", "exchange": "SZ", "category": "sp500", "manager": "嘉实基金"},
-    {"code": "159518", "name": "标普油气ETF嘉实", "exchange": "SZ", "category": "sp500", "manager": "嘉实基金"},
-    {"code": "159529", "name": "标普消费ETF景顺", "exchange": "SZ", "category": "sp500", "manager": "景顺长城基金"},
-    {"code": "513350", "name": "标普油气ETF富国", "exchange": "SH", "category": "sp500", "manager": "富国基金"},
 ]
 
 HISTORY_DIR = Path(__file__).parent / "data"

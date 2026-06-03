@@ -12,13 +12,8 @@
   "513390": { "mgmt_fee": 0.50, "custodian_fee": 0.15, "total_fee": 0.65 },
   "513870": { "mgmt_fee": 0.50, "custodian_fee": 0.10, "total_fee": 0.60 },
   "159509": { "mgmt_fee": 0.80, "custodian_fee": 0.20, "total_fee": 1.00 },
-  "513290": { "mgmt_fee": 0.50, "custodian_fee": 0.15, "total_fee": 0.65 },
   "513500": { "mgmt_fee": 0.60, "custodian_fee": 0.20, "total_fee": 0.80 },
   "159655": { "mgmt_fee": 0.60, "custodian_fee": 0.15, "total_fee": 0.75 },
   "159612": { "mgmt_fee": 0.60, "custodian_fee": 0.15, "total_fee": 0.75 },
-  "513650": { "mgmt_fee": 0.60, "custodian_fee": 0.15, "total_fee": 0.75 },
-  "159502": { "mgmt_fee": 0.50, "custodian_fee": 0.10, "total_fee": 0.60 },
-  "159518": { "mgmt_fee": 0.50, "custodian_fee": 0.10, "total_fee": 0.60 },
-  "159529": { "mgmt_fee": 0.50, "custodian_fee": 0.20, "total_fee": 0.70 },
-  "513350": { "mgmt_fee": 0.50, "custodian_fee": 0.10, "total_fee": 0.60 }
+  "513650": { "mgmt_fee": 0.60, "custodian_fee": 0.15, "total_fee": 0.75 }
 }
