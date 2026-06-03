@@ -306,6 +306,15 @@ main {
   flex-shrink: 0;
 }
 
+.li-fee {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  min-width: 46px;
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
 .li-price {
   color: var(--text-secondary);
   min-width: 48px;

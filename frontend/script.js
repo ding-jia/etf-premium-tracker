@@ -77,13 +77,14 @@ function renderCard(etf) {
   const level = premiumLevel(premium);
   const changeClass = etf.change_pct >= 0 ? 'up' : 'down';
   const changeSign = etf.change_pct >= 0 ? '+' : '';
-  const isWatchlist = watchlist.has(etf.code) ? ' watchlist' : '';
-
+  const fee = etf.fee;
+  const feeText = fee && fee.total != null ? fee.total.toFixed(2) + '%' : '--';
   return `
-    <div class="list-item premium-${level}${isWatchlist}" data-code="${etf.code}" data-premium="${premium}">
+    <div class="list-item premium-${level}" data-code="${etf.code}" data-premium="${premium}">
       <span class="li-code">${etf.code}</span>
-      <span class="li-name">${isWatchlist ? '★ ' : ''}${etf.name}</span>
+      <span class="li-name">${etf.name}</span>
       <span class="li-manager">${etf.manager}</span>
+      <span class="li-fee">${feeText}</span>
       <span class="li-price">${etf.price ?? '--'}</span>
       <span class="li-change ${changeClass}">${changeSign}${(etf.change_pct ?? 0).toFixed(2)}%</span>
       <span class="li-premium">${premium >= 0 ? '+' : ''}${premium.toFixed(2)}%</span>
@@ -106,9 +107,7 @@ function renderGrid(data, containerId, sortSelectId) {
     }
   };
 
-  const pinned = data.filter(e => watchlist.has(e.code)).sort(sortFn);
-  const rest = data.filter(e => !watchlist.has(e.code)).sort(sortFn);
-  const sorted = [...pinned, ...rest];
+  const sorted = data.filter(e => watchlist.has(e.code)).sort(sortFn);
 
   container.innerHTML = sorted.map(etf => renderCard(etf)).join('');
 
@@ -125,6 +124,7 @@ function renderSkeleton(containerId, count) {
       <span class="li-code">888888</span>
       <span class="li-name">加载中加载中</span>
       <span class="li-manager">加载中</span>
+      <span class="li-fee">0.00%</span>
       <span class="li-price">88.888</span>
       <span class="li-change">+88.88%</span>
       <span class="li-premium">+88.88%</span>
@@ -146,8 +146,10 @@ function updateMarketStatus(status) {
 }
 
 function updateCounts(nasdaq, sp500) {
-  document.getElementById('nasdaqCount').textContent = `${nasdaq.length} 只`;
-  document.getElementById('sp500Count').textContent = `${sp500.length} 只`;
+  const nasdaqFiltered = nasdaq.filter(e => watchlist.has(e.code));
+  const sp500Filtered = sp500.filter(e => watchlist.has(e.code));
+  document.getElementById('nasdaqCount').textContent = `${nasdaqFiltered.length} 只`;
+  document.getElementById('sp500Count').textContent = `${sp500Filtered.length} 只`;
 }
 
 async function fetchData(forceRender = false) {

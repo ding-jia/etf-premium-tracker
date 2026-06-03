@@ -2,7 +2,7 @@ import json
 import time
 import asyncio
 import sqlite3
-import subprocess
+import httpx
 from datetime import datetime
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -75,17 +75,15 @@ def init_db():
         conn.commit()
 
 
-def fetch_all() -> list:
+async def fetch_all() -> list:
     codes = ",".join(
         f"{'sh' if e['exchange'] == 'SH' else 'sz'}{e['code']}" for e in ETFS
     )
+    url = f"http://qt.gtimg.cn/q={codes}"
     try:
-        r = subprocess.run(
-            ["curl", "-s", "--max-time", "8",
-             f"http://qt.gtimg.cn/q={codes}"],
-            capture_output=True, timeout=10
-        )
-        text = r.stdout.decode("gbk", errors="replace")
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(url)
+            text = resp.content.decode("gbk", errors="replace")
     except Exception:
         return []
 
@@ -118,6 +116,8 @@ def fetch_all() -> list:
             iopv = prev_close or 0
             premium = round((price - iopv) / iopv * 100, 2) if iopv else 0
 
+        fee = fees_cache.get(code)
+
         result.append({
             "code": code,
             "name": name,
@@ -134,13 +134,18 @@ def fetch_all() -> list:
             "volume": volume_hands * 100,
             "amount": turnover_wan * 10000,
             "prev_close": prev_close,
+            "fee": {
+                "mgmt": fee["mgmt_fee"] if fee else None,
+                "custodian": fee["custodian_fee"] if fee else None,
+                "total": fee["total_fee"] if fee else None,
+            },
         })
     return result
 
 
-def update_cache():
+async def update_cache():
     global cached_response, history_store, last_daily_save
-    data = fetch_all()
+    data = await fetch_all()
     if not data:
         print("  fetch failed", flush=True)
         return
@@ -184,15 +189,16 @@ def update_cache():
 
 async def background_updater():
     await asyncio.sleep(2)
-    update_cache()
+    await update_cache()
     while True:
         await asyncio.sleep(30)
-        update_cache()
+        await update_cache()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_history()
+    load_fees()
     init_db()
     task = asyncio.create_task(background_updater())
     yield
@@ -204,6 +210,17 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 WATCHLIST_FILE = Path(__file__).parent / "watchlist.txt"
+FEES_FILE = Path(__file__).parent / "etf_fees.json"
+
+fees_cache: dict = {}
+
+def load_fees():
+    global fees_cache
+    if FEES_FILE.exists():
+        try:
+            fees_cache = json.loads(FEES_FILE.read_text())
+        except Exception:
+            fees_cache = {}
 
 
 @app.get("/api/watchlist")
@@ -217,6 +234,11 @@ async def get_watchlist():
 @app.get("/api/etfs")
 async def get_etfs():
     return cached_response
+
+
+@app.get("/api/fees")
+async def get_fees():
+    return fees_cache
 
 
 @app.get("/api/history/{code}")
