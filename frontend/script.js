@@ -252,6 +252,12 @@ function renderChart(records) {
     return;
   }
 
+  const isBB = theme === 'bloomberg';
+  const lineColor = isBB ? '#ff8c00' : '#2563eb';
+  const fillRgba = isBB ? 'rgba(255,140,0,' : 'rgba(37,99,235,';
+  const textColor = isBB ? '#787878' : '#9ca3af';
+  const gridColor = isBB ? 'rgba(42,42,42,0.6)' : 'rgba(226,230,234,0.6)';
+
   const labels = records.map(r => {
     if (typeof r[0] === 'string') {
       const parts = r[0].split('-');
@@ -269,11 +275,11 @@ function renderChart(records) {
       datasets: [{
         label: '溢价率 %',
         data: values,
-        borderColor: '#4a8eff',
+        borderColor: lineColor,
         backgroundColor: (ctx) => {
           const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 320);
-          g.addColorStop(0, 'rgba(74, 142, 255, 0.2)');
-          g.addColorStop(1, 'rgba(74, 142, 255, 0.0)');
+          g.addColorStop(0, fillRgba + '0.25)');
+          g.addColorStop(1, fillRgba + '0.0)');
           return g;
         },
         borderWidth: 2,
@@ -294,10 +300,10 @@ function renderChart(records) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#ffffff',
-          titleColor: '#1f2937',
-          bodyColor: '#2563eb',
-          borderColor: '#e2e6ea',
+          backgroundColor: isBB ? '#1a1a1a' : '#ffffff',
+          titleColor: isBB ? '#c8c8c8' : '#1f2937',
+          bodyColor: isBB ? '#ff8c00' : '#2563eb',
+          borderColor: isBB ? '#333' : '#e2e6ea',
           borderWidth: 1,
           padding: 10,
           bodyFont: { size: 14, weight: 'bold' },
@@ -312,7 +318,7 @@ function renderChart(records) {
           display: true,
           grid: { display: false, drawBorder: false },
           ticks: {
-            color: '#9ca3af',
+            color: textColor,
             font: { size: 10 },
             maxTicksLimit: 10,
             autoSkip: true,
@@ -320,9 +326,9 @@ function renderChart(records) {
         },
         y: {
           display: true,
-          grid: { color: 'rgba(226, 230, 234, 0.6)', drawBorder: false },
+          grid: { color: gridColor, drawBorder: false },
           ticks: {
-            color: '#9ca3af',
+            color: textColor,
             font: { size: 10 },
             callback: (v) => `${v.toFixed(1)}%`,
           }

@@ -184,7 +184,6 @@ main {
 .columns {
   display: flex;
   gap: 16px;
-  height: calc(100vh - 180px);
   min-height: 500px;
 }
 
@@ -194,19 +193,17 @@ main {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow-y: auto;
 }
 
 .list-panel > div {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;
 }
 
 .list-panel .list {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
 }
 
 .chart-panel {

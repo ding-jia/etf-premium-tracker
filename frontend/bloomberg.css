@@ -161,7 +161,6 @@
 [data-theme="bloomberg"] .columns {
   display: flex;
   gap: 6px;
-  height: calc(100vh - 130px);
   min-height: 520px;
 }
 
@@ -171,19 +170,17 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  overflow-y: auto;
 }
 
 [data-theme="bloomberg"] .list-panel > div {
   display: flex;
   flex-direction: column;
   flex: 1;
-  min-height: 0;
 }
 
 [data-theme="bloomberg"] .list-panel .list {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: visible;
 }
 
 [data-theme="bloomberg"] .chart-panel {
