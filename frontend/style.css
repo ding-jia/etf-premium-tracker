@@ -215,6 +215,8 @@ main {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
+  aspect-ratio: 1 / 1;
+  max-height: calc(100vh - 120px);
 }
 
 .chart-header {

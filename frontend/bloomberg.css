@@ -192,6 +192,8 @@
   border: 1px solid var(--bb-border);
   border-radius: 0;
   overflow: hidden;
+  aspect-ratio: 1 / 1;
+  max-height: calc(100vh - 100px);
 }
 
 [data-theme="bloomberg"] .chart-header {
