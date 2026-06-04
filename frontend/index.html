@@ -45,11 +45,15 @@
         <h2><span class="badge badge-nasdaq">NASDAQ</span> 纳指 ETF</h2>
         <div class="section-controls">
           <span class="count" id="nasdaqCount">0 只</span>
-          <select id="nasdaqSort" class="sort-select">
+            <select id="nasdaqSort" class="sort-select">
             <option value="premium-desc">溢价率 ↓</option>
             <option value="premium-asc">溢价率 ↑</option>
             <option value="fee-desc">费率 ↓</option>
             <option value="fee-asc">费率 ↑</option>
+            <option value="amount-desc">成交额 ↓</option>
+            <option value="amount-asc">成交额 ↑</option>
+            <option value="scale-desc">规模 ↓</option>
+            <option value="scale-asc">规模 ↑</option>
             <option value="code">代码</option>
             <option value="name">名称</option>
           </select>
@@ -65,6 +69,8 @@
         <span class="lh-change">涨跌</span>
         <span class="lh-premium">溢价率</span>
         <span class="lh-label">状态</span>
+        <span class="lh-amount">成交额</span>
+        <span class="lh-scale">规模</span>
       </div>
       <div class="list" id="nasdaqGrid"></div>
     </div>
@@ -78,6 +84,10 @@
             <option value="premium-asc">溢价率 ↑</option>
             <option value="fee-desc">费率 ↓</option>
             <option value="fee-asc">费率 ↑</option>
+            <option value="amount-desc">成交额 ↓</option>
+            <option value="amount-asc">成交额 ↑</option>
+            <option value="scale-desc">规模 ↓</option>
+            <option value="scale-asc">规模 ↑</option>
             <option value="code">代码</option>
             <option value="name">名称</option>
           </select>
@@ -93,6 +103,8 @@
         <span class="lh-change">涨跌</span>
         <span class="lh-premium">溢价率</span>
         <span class="lh-label">状态</span>
+        <span class="lh-amount">成交额</span>
+        <span class="lh-scale">规模</span>
       </div>
       <div class="list" id="sp500Grid"></div>
     </div>

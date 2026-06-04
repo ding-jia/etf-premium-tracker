@@ -115,6 +115,7 @@ async def fetch_all() -> list:
             premium = float(parts[77]) if parts[77] else 0
             iopv = float(parts[78]) if parts[78] else 0
             nav = float(parts[81]) if parts[81] else None
+            total_shares = float(parts[72]) if parts[72] else 0
             name = parts[1]
         except (ValueError, IndexError):
             continue
@@ -125,6 +126,8 @@ async def fetch_all() -> list:
 
         if iopv == 0:
             premium = None
+
+        fund_scale = round(nav * total_shares / 100000000, 2) if nav and total_shares else None
 
         fee = fees_cache.get(code)
 
@@ -147,6 +150,7 @@ async def fetch_all() -> list:
                 "custodian": fee["custodian_fee"] if fee else None,
                 "total": fee["total_fee"] if fee else None,
             },
+            "fund_scale": fund_scale,
         })
     return result
 

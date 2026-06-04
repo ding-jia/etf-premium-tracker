@@ -327,12 +327,14 @@ main {
 .lh-star    { min-width: 18px; }
 .lh-code    { min-width: 52px; }
 .lh-name    { min-width: 0; flex: 1; }
-.lh-manager { min-width: 72px; flex-shrink: 0; }
-.lh-fee     { min-width: 46px; text-align: right; flex-shrink: 0; }
-.lh-price   { min-width: 48px; text-align: right; flex-shrink: 0; }
-.lh-change  { min-width: 52px; text-align: right; flex-shrink: 0; }
-.lh-premium { min-width: 68px; text-align: right; flex-shrink: 0; }
-.lh-label   { min-width: 48px; flex-shrink: 0; }
+.lh-manager { min-width: 64px; flex-shrink: 1; }
+.lh-fee     { min-width: 40px; text-align: right; flex-shrink: 1; }
+.lh-price   { min-width: 44px; text-align: right; flex-shrink: 1; }
+.lh-change  { min-width: 48px; text-align: right; flex-shrink: 1; }
+.lh-premium { min-width: 60px; text-align: right; flex-shrink: 0; }
+.lh-label   { min-width: 40px; flex-shrink: 0; }
+.lh-amount  { min-width: 48px; text-align: right; flex-shrink: 0; }
+.lh-scale   { min-width: 48px; text-align: right; flex-shrink: 0; }
 
 /* ===== List ===== */
 .list {
@@ -422,7 +424,7 @@ main {
 .li-code {
   font-weight: 600;
   color: var(--text-primary);
-  min-width: 52px;
+  min-width: 48px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -439,29 +441,31 @@ main {
 .li-manager {
   color: var(--text-muted);
   font-size: 0.75rem;
-  flex-shrink: 0;
+  flex-shrink: 1;
 }
 
 .li-fee {
   color: var(--text-secondary);
   font-size: 0.78rem;
-  min-width: 46px;
+  min-width: 40px;
   text-align: right;
-  flex-shrink: 0;
+  flex-shrink: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .li-price {
   color: var(--text-secondary);
-  min-width: 48px;
+  min-width: 44px;
   text-align: right;
+  flex-shrink: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .li-change {
   font-weight: 500;
-  min-width: 52px;
+  min-width: 48px;
   text-align: right;
+  flex-shrink: 1;
   font-variant-numeric: tabular-nums;
 }
 
@@ -471,7 +475,7 @@ main {
 .li-premium {
   font-weight: 700;
   font-size: 0.95rem;
-  min-width: 68px;
+  min-width: 56px;
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
@@ -491,6 +495,24 @@ main {
 .premium-up .li-label     { background: var(--red-bg); color: var(--red); }
 .premium-down .li-label   { background: var(--green-bg); color: var(--green); }
 .premium-purple .li-label { background: var(--purple-bg); color: var(--purple); }
+
+.li-amount {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.li-scale {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  min-width: 48px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
 
 /* ===== Footer ===== */
 footer {
@@ -528,7 +550,9 @@ footer a:hover {
 .list-item.loading .li-price,
 .list-item.loading .li-change,
 .list-item.loading .li-premium,
-.list-item.loading .li-label {
+.list-item.loading .li-label,
+.list-item.loading .li-amount,
+.list-item.loading .li-scale {
   animation: shimmer 1.5s infinite;
   background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
   background-size: 200% 100%;

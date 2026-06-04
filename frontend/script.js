@@ -78,6 +78,18 @@ function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+function formatAmount(v) {
+  if (v == null || v === 0) return '--';
+  const yi = v / 100000000;
+  if (yi >= 1) return yi.toFixed(2) + '亿';
+  return (v / 10000).toFixed(0) + '万';
+}
+
+function formatScale(v) {
+  if (v == null) return '--';
+  return v.toFixed(1) + '亿';
+}
+
 function renderCard(etf, minFee) {
   const premium = etf.premium ?? 0;
   const level = premiumLevel(premium);
@@ -99,6 +111,8 @@ function renderCard(etf, minFee) {
       <span class="li-change ${changeClass}">${changeSign}${(etf.change_pct ?? 0).toFixed(2)}%</span>
       <span class="li-premium">${premium != null ? (premium >= 0 ? '+' : '') + premium.toFixed(2) + '%' : 'N/A'}</span>
       <span class="li-label">${premiumLabel(premium)}</span>
+      <span class="li-amount">${formatAmount(etf.amount)}</span>
+      <span class="li-scale">${formatScale(etf.fund_scale)}</span>
     </div>
   `;
 }
@@ -113,6 +127,10 @@ function renderGrid(data, containerId, sortSelectId) {
       case 'premium-asc': return (a.premium ?? 0) - (b.premium ?? 0);
       case 'fee-desc': return ((b.fee && b.fee.total) || 0) - ((a.fee && a.fee.total) || 0);
       case 'fee-asc': return ((a.fee && a.fee.total) || 0) - ((b.fee && b.fee.total) || 0);
+      case 'amount-desc': return (b.amount || 0) - (a.amount || 0);
+      case 'amount-asc': return (a.amount || 0) - (b.amount || 0);
+      case 'scale-desc': return (b.fund_scale || 0) - (a.fund_scale || 0);
+      case 'scale-asc': return (a.fund_scale || 0) - (b.fund_scale || 0);
       case 'code': return a.code.localeCompare(b.code);
       case 'name': return a.name.localeCompare(b.name);
       default: return 0;
@@ -157,6 +175,8 @@ function renderSkeleton(containerId, count) {
       <span class="li-change">+88.88%</span>
       <span class="li-premium">+88.88%</span>
       <span class="li-label">加载</span>
+      <span class="li-amount">加载</span>
+      <span class="li-scale">加载</span>
     </div>
   `).join('');
 }
