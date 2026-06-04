@@ -274,6 +274,7 @@ function renderChart(records) {
 
   const isBB = theme === 'bloomberg';
   const lineColor = isBB ? '#ff8c00' : '#2563eb';
+  const ma5Color = isBB ? '#ffffff' : '#6b7280';
   const fillRgba = isBB ? 'rgba(255,140,0,' : 'rgba(37,99,235,';
   const textColor = isBB ? '#787878' : '#9ca3af';
   const gridColor = isBB ? 'rgba(42,42,42,0.6)' : 'rgba(226,230,234,0.6)';
@@ -287,6 +288,18 @@ function renderChart(records) {
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   });
   const values = records.map(r => +r[1].toFixed(2));
+
+  function calcMA(data, period) {
+    const r = [];
+    for (let i = 0; i < data.length; i++) {
+      if (i < period - 1) { r.push(null); continue; }
+      let s = 0;
+      for (let j = i - period + 1; j <= i; j++) s += data[j];
+      r.push(+(s / period).toFixed(2));
+    }
+    return r;
+  }
+  const ma5 = calcMA(values, 5);
 
   chartInstance = new Chart(ctx, {
     type: 'line',
@@ -307,6 +320,16 @@ function renderChart(records) {
         pointHitRadius: 6,
         tension: 0.3,
         fill: true,
+      }, {
+        label: 'MA5',
+        data: ma5,
+        borderColor: ma5Color,
+        backgroundColor: 'transparent',
+        borderWidth: 1,
+        pointRadius: 0,
+        pointHitRadius: 4,
+        tension: 0.3,
+        fill: false,
       }]
     },
     options: {
@@ -326,10 +349,10 @@ function renderChart(records) {
           borderColor: isBB ? '#333' : '#e2e6ea',
           borderWidth: 1,
           padding: 10,
-          bodyFont: { size: 14, weight: 'bold' },
-          displayColors: false,
+          bodyFont: { size: 14 },
+          displayColors: true,
           callbacks: {
-            label: (ctx) => `${ctx.parsed.y.toFixed(2)}%`,
+            label: (ctx) => `${ctx.dataset.label === 'MA5' ? 'MA5: ' : ''}${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '--'}`,
           }
         }
       },
