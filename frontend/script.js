@@ -275,6 +275,7 @@ function renderChart(records) {
   const isBB = theme === 'bloomberg';
   const lineColor = isBB ? '#ff8c00' : '#2563eb';
   const ma5Color = isBB ? '#ffffff' : '#6b7280';
+  const ma20Color = isBB ? '#22c55e' : '#dc2626';
   const fillRgba = isBB ? 'rgba(255,140,0,' : 'rgba(37,99,235,';
   const textColor = isBB ? '#787878' : '#9ca3af';
   const gridColor = isBB ? 'rgba(42,42,42,0.6)' : 'rgba(226,230,234,0.6)';
@@ -300,6 +301,7 @@ function renderChart(records) {
     return r;
   }
   const ma5 = calcMA(values, 5);
+  const ma20 = calcMA(values, 20);
 
   chartInstance = new Chart(ctx, {
     type: 'line',
@@ -330,6 +332,17 @@ function renderChart(records) {
         pointHitRadius: 4,
         tension: 0.3,
         fill: false,
+      }, {
+        label: 'MA20',
+        data: ma20,
+        borderColor: ma20Color,
+        backgroundColor: 'transparent',
+        borderWidth: 2,
+        borderDash: [6, 3],
+        pointRadius: 0,
+        pointHitRadius: 4,
+        tension: 0.3,
+        fill: false,
       }]
     },
     options: {
@@ -352,7 +365,12 @@ function renderChart(records) {
           bodyFont: { size: 14 },
           displayColors: true,
           callbacks: {
-            label: (ctx) => `${ctx.dataset.label === 'MA5' ? 'MA5: ' : ''}${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '--'}`,
+            label: (ctx) => {
+              const label = ctx.dataset.label;
+              if (label === 'MA5') return `MA5: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '--'}`;
+              if (label === 'MA20') return `MA20: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '--'}`;
+              return `${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '--'}`;
+            },
           }
         }
       },
