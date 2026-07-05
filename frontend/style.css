@@ -231,6 +231,34 @@ main {
   color: var(--text-primary);
 }
 
+.ma-toggles {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ma-toggle {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  background: transparent;
+  user-select: none;
+  transition: all 0.2s;
+}
+
+.ma-toggle.active {
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border-color: var(--accent-blue);
+}
+
+.ma-toggle:hover {
+  border-color: var(--accent-blue);
+}
+
 .chart-body {
   flex: 1;
   padding: 12px;

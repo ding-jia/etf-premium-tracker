@@ -20,6 +20,8 @@ let isMarketOpen = false;
 let watchlist = new Set();
 let chartInstance = null;
 let currentChartCode = null;
+let maVisibility = { ma5: true, ma10: true, ma20: true };
+let lastChartRecords = [];
 
 const API = '/api/etfs';
 const HISTORY_API = '/api/daily';
@@ -247,7 +249,8 @@ async function selectETF(code) {
   try {
     const resp = await fetch(`${HISTORY_API}/${code}`);
     const data = await resp.json();
-    renderChart(data.daily || []);
+    lastChartRecords = data.daily || [];
+    renderChart(lastChartRecords);
   } catch (err) {
     handleError('selectETF', err, '历史数据加载失败');
     renderChart([]);
@@ -275,6 +278,7 @@ function renderChart(records) {
   const isBB = theme === 'bloomberg';
   const lineColor = isBB ? '#ff8c00' : '#2563eb';
   const ma5Color = isBB ? '#ffffff' : '#6b7280';
+  const ma10Color = isBB ? '#38bdf8' : '#8b5cf6';
   const ma20Color = isBB ? '#22c55e' : '#dc2626';
   const fillRgba = isBB ? 'rgba(255,140,0,' : 'rgba(37,99,235,';
   const textColor = isBB ? '#787878' : '#9ca3af';
@@ -301,49 +305,68 @@ function renderChart(records) {
     return r;
   }
   const ma5 = calcMA(values, 5);
+  const ma10 = calcMA(values, 10);
   const ma20 = calcMA(values, 20);
 
   chartInstance = new Chart(ctx, {
     type: 'line',
     data: {
       labels,
-      datasets: [{
-        label: '溢价率 %',
-        data: values,
-        borderColor: lineColor,
-        backgroundColor: (ctx) => {
-          const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 320);
-          g.addColorStop(0, fillRgba + '0.25)');
-          g.addColorStop(1, fillRgba + '0.0)');
-          return g;
-        },
-        borderWidth: 2,
-        pointRadius: 0,
-        pointHitRadius: 6,
-        tension: 0.3,
-        fill: true,
-      }, {
-        label: 'MA5',
-        data: ma5,
-        borderColor: ma5Color,
-        backgroundColor: 'transparent',
-        borderWidth: 1,
-        pointRadius: 0,
-        pointHitRadius: 4,
-        tension: 0.3,
-        fill: false,
-      }, {
-        label: 'MA20',
-        data: ma20,
-        borderColor: ma20Color,
-        backgroundColor: 'transparent',
-        borderWidth: 2,
-        borderDash: [6, 3],
-        pointRadius: 0,
-        pointHitRadius: 4,
-        tension: 0.3,
-        fill: false,
-      }]
+      datasets: (() => {
+        const ds = [];
+        ds.push({
+          label: '溢价率 %',
+          data: values,
+          borderColor: lineColor,
+          backgroundColor: (ctx) => {
+            const g = ctx.chart.ctx.createLinearGradient(0, 0, 0, 320);
+            g.addColorStop(0, fillRgba + '0.25)');
+            g.addColorStop(1, fillRgba + '0.0)');
+            return g;
+          },
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHitRadius: 6,
+          tension: 0.3,
+          fill: true,
+        });
+        if (maVisibility.ma5) ds.push({
+          label: 'MA5',
+          data: ma5,
+          borderColor: ma5Color,
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          pointRadius: 0,
+          pointHitRadius: 4,
+          tension: 0.3,
+          fill: false,
+        });
+        if (maVisibility.ma10) ds.push({
+          label: 'MA10',
+          data: ma10,
+          borderColor: ma10Color,
+          backgroundColor: 'transparent',
+          borderWidth: 1,
+          borderDash: [4, 2],
+          pointRadius: 0,
+          pointHitRadius: 4,
+          tension: 0.3,
+          fill: false,
+        });
+        if (maVisibility.ma20) ds.push({
+          label: 'MA20',
+          data: ma20,
+          borderColor: ma20Color,
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          borderDash: [6, 3],
+          pointRadius: 0,
+          pointHitRadius: 4,
+          tension: 0.3,
+          fill: false,
+        });
+        return ds;
+      })(),
     },
     options: {
       responsive: true,
@@ -367,8 +390,9 @@ function renderChart(records) {
           callbacks: {
             label: (ctx) => {
               const label = ctx.dataset.label;
-              if (label === 'MA5') return `MA5: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '--'}`;
-              if (label === 'MA20') return `MA20: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '--'}`;
+              if (label === 'MA5' || label === 'MA10' || label === 'MA20') {
+                return `${label}: ${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '--'}`;
+              }
               return `${ctx.parsed.y != null ? ctx.parsed.y.toFixed(2) + '%' : '--'}`;
             },
           }
@@ -405,6 +429,16 @@ function closeChart() {
     chartInstance = null;
   }
   currentChartCode = null;
+}
+
+function toggleMALine(line) {
+  maVisibility[line] = !maVisibility[line];
+  document.querySelectorAll('.ma-toggle').forEach(el => {
+    el.classList.toggle('active', maVisibility[el.dataset.ma]);
+  });
+  if (lastChartRecords.length) {
+    renderChart(lastChartRecords);
+  }
 }
 
 function startAutoRefresh() {
@@ -449,6 +483,10 @@ window.addEventListener('beforeunload', () => {
 document.addEventListener('DOMContentLoaded', async () => {
   applyTheme();
   document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+  document.querySelectorAll('.ma-toggle').forEach(el => {
+    el.addEventListener('click', () => toggleMALine(el.dataset.ma));
+  });
 
   renderSkeleton('nasdaqGrid', 7);
   renderSkeleton('sp500Grid', 3);
