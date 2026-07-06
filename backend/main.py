@@ -1,3 +1,4 @@
+import fcntl
 import json
 import time
 import asyncio
@@ -8,8 +9,8 @@ from datetime import datetime
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from fastapi.responses import JSONResponse, FileResponse, Response
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
@@ -42,6 +43,7 @@ DB_PATH = HISTORY_DIR / "premium.db"
 cached_response = {"nasdaq": [], "sp500": [], "total_count": 0, "market_status": "closed", "update_time": ""}
 history_store: dict = {}
 history_lock = asyncio.Lock()
+refresh_lock = asyncio.Lock()
 last_daily_save: str = ""
 
 
@@ -155,53 +157,47 @@ async def fetch_all() -> list:
     return result
 
 
-async def update_cache():
+async def update_cache() -> bool:
     global cached_response, history_store, last_daily_save
-    data = await fetch_all()
-    if not data:
-        print("  fetch failed", flush=True)
-        return
+    async with refresh_lock:
+        data = await fetch_all()
+        if not data:
+            logger.warning("fetch_all returned empty")
+            return False
 
-    now = datetime.now()
-    now_ts = int(time.time())
-    async with history_lock:
-        for item in data:
-            c = item["code"]
-            if c not in history_store:
-                history_store[c] = []
-            history_store[c].append([now_ts, item["premium"]])
-            history_store[c] = history_store[c][-480:]
-        await asyncio.to_thread(save_history)
+        now = datetime.now()
+        now_ts = int(time.time())
+        async with history_lock:
+            for item in data:
+                c = item["code"]
+                if c not in history_store:
+                    history_store[c] = []
+                history_store[c].append([now_ts, item["premium"]])
+                history_store[c] = history_store[c][-480:]
+            await asyncio.to_thread(save_history)
 
-    is_weekend = now.weekday() >= 5
-    total_min = now.hour * 60 + now.minute
-    is_trading = not is_weekend and ((570 <= total_min < 690) or (780 <= total_min < 900))
+        is_weekend = now.weekday() >= 5
+        total_min = now.hour * 60 + now.minute
+        is_trading = not is_weekend and ((570 <= total_min < 690) or (780 <= total_min < 900))
 
-    if not is_trading and not is_weekend:
-        today = now.strftime("%Y-%m-%d")
-        has_iopv = any(item.get("iopv") for item in data)
-        if today != last_daily_save and has_iopv:
-            rows = [(item["code"], today, item["premium"], item["price"], item["iopv"] or 0) for item in data]
-            await asyncio.to_thread(_save_daily_snapshot, rows)
-            last_daily_save = today
-            print(f"  saved daily premiums for {today}", flush=True)
+        if not is_trading and not is_weekend:
+            today = now.strftime("%Y-%m-%d")
+            has_iopv = any(item.get("iopv") for item in data)
+            if today != last_daily_save and has_iopv:
+                rows = [(item["code"], today, item["premium"], item["price"], item["iopv"] or 0) for item in data]
+                await asyncio.to_thread(_save_daily_snapshot, rows)
+                last_daily_save = today
+                logger.info("saved daily premiums for %s", today)
 
-    cached_response = {
-        "nasdaq": [d for d in data if d["category"] == "nasdaq"],
-        "sp500": [d for d in data if d["category"] == "sp500"],
-        "market_status": "open" if is_trading else "closed",
-        "update_time": now.strftime("%Y-%m-%d %H:%M:%S"),
-        "total_count": len(data),
-    }
-    print(f"  updated: {len(data)} ETFs", flush=True)
-
-
-async def background_updater():
-    await asyncio.sleep(2)
-    await update_cache()
-    while True:
-        await asyncio.sleep(30)
-        await update_cache()
+        cached_response = {
+            "nasdaq": [d for d in data if d["category"] == "nasdaq"],
+            "sp500": [d for d in data if d["category"] == "sp500"],
+            "market_status": "open" if is_trading else "closed",
+            "update_time": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "total_count": len(data),
+        }
+        logger.info("updated: %d ETFs", len(data))
+        return True
 
 
 @asynccontextmanager
@@ -209,9 +205,9 @@ async def lifespan(app: FastAPI):
     load_history()
     load_fees()
     init_db()
-    task = asyncio.create_task(background_updater())
+    await asyncio.sleep(2)
+    await update_cache()
     yield
-    task.cancel()
 
 
 app = FastAPI(title="ETF Premium Tracker", lifespan=lifespan)
@@ -243,7 +239,6 @@ async def get_watchlist():
 
 @app.post("/api/watchlist/toggle/{code}")
 async def toggle_watchlist(code: str):
-    import fcntl
     codes = []
     if WATCHLIST_FILE.exists():
         codes = [line.strip() for line in WATCHLIST_FILE.read_text().splitlines() if line.strip()]
@@ -262,6 +257,14 @@ async def toggle_watchlist(code: str):
 
 @app.get("/api/etfs")
 async def get_etfs():
+    return cached_response
+
+
+@app.post("/api/refresh")
+async def refresh_data():
+    success = await update_cache()
+    if not success:
+        raise HTTPException(status_code=502, detail="数据获取失败，上游不可达")
     return cached_response
 
 

@@ -12,9 +12,6 @@ function toggleTheme() {
   applyTheme();
 }
 
-let autoRefresh = true;
-let refreshInterval = null;
-let statusInterval = null;
 let allData = { nasdaq: [], sp500: [] };
 let isMarketOpen = false;
 let watchlist = new Set();
@@ -24,6 +21,7 @@ let maVisibility = { ma5: true, ma10: true, ma20: true };
 let lastChartRecords = [];
 
 const API = '/api/etfs';
+const REFRESH_API = '/api/refresh';
 const HISTORY_API = '/api/daily';
 const WATCHLIST_API = '/api/watchlist';
 
@@ -200,7 +198,7 @@ function updateCounts(nasdaq, sp500) {
   document.getElementById('sp500Count').textContent = `${sp500.length} 只`;
 }
 
-async function fetchData(forceRender = false) {
+async function fetchData() {
   try {
     const resp = await fetch(API);
     const data = await resp.json();
@@ -211,11 +209,9 @@ async function fetchData(forceRender = false) {
     updateMarketStatus(data.market_status);
     document.getElementById('updateTime').textContent = data.update_time;
 
-    if (forceRender || isMarketOpen) {
-      renderGrid(data.nasdaq, 'nasdaqGrid', 'nasdaqSort');
-      renderGrid(data.sp500, 'sp500Grid', 'sp500Sort');
-      updateCounts(data.nasdaq, data.sp500);
-    }
+    renderGrid(data.nasdaq, 'nasdaqGrid', 'nasdaqSort');
+    renderGrid(data.sp500, 'sp500Grid', 'sp500Sort');
+    updateCounts(data.nasdaq, data.sp500);
   } catch (err) {
     handleError('fetchData', err, '数据加载失败，请检查网络连接');
   }
@@ -441,43 +437,33 @@ function toggleMALine(line) {
   }
 }
 
-function startAutoRefresh() {
-  if (refreshInterval) clearInterval(refreshInterval);
-  refreshInterval = setInterval(fetchData, 600000);
-}
+window.addEventListener('beforeunload', () => {
+  if (chartInstance) chartInstance.destroy();
+});
 
-function stopAutoRefresh() {
-  if (refreshInterval) {
-    clearInterval(refreshInterval);
-    refreshInterval = null;
-  }
-}
-
-async function checkMarketStatus() {
+async function refreshData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spin');
   try {
-    const resp = await fetch(API);
+    const resp = await fetch(REFRESH_API, { method: 'POST' });
+    if (!resp.ok) {
+      const detail = await resp.json().catch(() => ({}));
+      throw new Error(detail.detail || '刷新失败');
+    }
     const data = await resp.json();
+    allData = { nasdaq: data.nasdaq, sp500: data.sp500 };
     isMarketOpen = data.market_status === 'open';
     updateMarketStatus(data.market_status);
     document.getElementById('updateTime').textContent = data.update_time;
-    if (isMarketOpen) {
-      if (!refreshInterval) {
-        startAutoRefresh();
-        fetchData();
-      }
-    } else {
-      stopAutoRefresh();
-    }
+    renderGrid(data.nasdaq, 'nasdaqGrid', 'nasdaqSort');
+    renderGrid(data.sp500, 'sp500Grid', 'sp500Sort');
+    updateCounts(data.nasdaq, data.sp500);
   } catch (err) {
-    handleError('checkMarketStatus', err, null);
+    handleError('refreshData', err, '数据刷新失败，请稍后重试');
+  } finally {
+    setTimeout(() => btn.classList.remove('spin'), 600);
   }
 }
-
-window.addEventListener('beforeunload', () => {
-  if (statusInterval) clearInterval(statusInterval);
-  if (refreshInterval) clearInterval(refreshInterval);
-  if (chartInstance) chartInstance.destroy();
-});
 
 // event listeners
 document.addEventListener('DOMContentLoaded', async () => {
@@ -499,30 +485,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     handleError('watchlistInit', err, null);
   }
 
-  await fetchData(true);
+  await fetchData();
   selectETF('513500');
-  checkMarketStatus();
-  statusInterval = setInterval(checkMarketStatus, 60000);
 
   document.getElementById('refreshBtn').addEventListener('click', () => {
-    const btn = document.getElementById('refreshBtn');
-    btn.classList.add('spin');
-    fetchData(true).finally(() => {
-      setTimeout(() => btn.classList.remove('spin'), 600);
-    });
-  });
-
-  document.getElementById('toggleAuto').addEventListener('click', (e) => {
-    e.preventDefault();
-    autoRefresh = !autoRefresh;
-    document.getElementById('toggleAuto').textContent = autoRefresh ? '暂停' : '开启';
-    document.getElementById('toggleAuto').style.color = autoRefresh ? '' : 'var(--yellow)';
-    if (autoRefresh && isMarketOpen && !refreshInterval) {
-      startAutoRefresh();
-      fetchData(true);
-    } else if (!autoRefresh) {
-      stopAutoRefresh();
-    }
+    refreshData();
   });
 
   document.getElementById('nasdaqSort').addEventListener('change', () => {
