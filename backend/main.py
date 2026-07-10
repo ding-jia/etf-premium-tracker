@@ -183,7 +183,7 @@ async def update_cache() -> bool:
         if not is_trading and not is_weekend:
             today = now.strftime("%Y-%m-%d")
             has_iopv = any(item.get("iopv") for item in data)
-            if today != last_daily_save and has_iopv:
+            if has_iopv:
                 rows = [(item["code"], today, item["premium"], item["price"], item["iopv"] or 0) for item in data]
                 await asyncio.to_thread(_save_daily_snapshot, rows)
                 last_daily_save = today
