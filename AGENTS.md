@@ -37,7 +37,7 @@ etf-premium-tracker/
         ├── store/               # SQLite 仓储（modernc.org/sqlite，纯 Go 无 cgo）
         ├── watchlist/           # watchlist.txt 读/写/toggle（原子替换）
         ├── fees/                # etf_fees.json 加载
-        └── server/              # 缓存、30s 后台轮询、8 个 HTTP handler、CORS、静态文件
+        └── server/              # 缓存、30m 后台轮询、8 个 HTTP handler、CORS、静态文件
 ```
 
 ## 启动
@@ -45,7 +45,7 @@ etf-premium-tracker/
 ./start.sh        # 或 Windows 下 start.bat；等价于 cd go && go run ./cmd/server
 # 访问 http://0.0.0.0:8000
 ```
-常用 flag：`-poll 30s`（轮询间隔）、`-addr :8001`（换端口）、`-frontend ../frontend`（静态目录）。
+常用 flag：`-poll 30m`（轮询间隔）、`-addr :8001`（换端口）、`-frontend ../frontend`（静态目录）。
 
 ## 交易时间（A股）
 - **上午**：09:30-11:30，**下午**：13:00-15:00，**周末**：休市
@@ -54,7 +54,7 @@ etf-premium-tracker/
 ## Go 后端架构（`go/internal/server`）
 
 ### 数据流
-1. `server.Start()` 在启动时运行 goroutine，每 **30 秒**（`-poll` 可调）轮询一次
+1. `server.Start()` 在启动时运行 goroutine，每 **30 分钟**（`-poll` 可调）轮询一次
 2. `RefreshOnce()` → `quote.Fetch`（HTTP + GBK 解码）→ `quote.Parse`（字段解析 + 换算）
 3. 每次刷新：追加日内历史到 `history.Store` → 保存 `history.json` → 判断 `market.IsTrading` → 收盘后落盘每日快照 → 更新内存缓存 `resp`
 4. 前端请求直接读内存缓存（`mu.RWMutex` 保护），不查 DB
@@ -62,7 +62,7 @@ etf-premium-tracker/
 ### API 端点（与 Python 版契约完全一致）
 | 路径 | 返回内容 | 是否缓存 |
 |---|---|---|
-| `GET /api/etfs` | `{ nasdaq, sp500, market_status, update_time, total_count }` | 是（30s后台更新） |
+| `GET /api/etfs` | `{ nasdaq, sp500, market_status, update_time, total_count }` | 是（30m后台更新） |
 | `GET /api/watchlist` | `{ codes: [...] }` | 读文件 |
 | `POST /api/watchlist/toggle/{code}` | `{ codes, in_watchlist }` | 原子写文件 |
 | `POST /api/refresh` | 同 `/api/etfs`；失败 502 `{"detail":"数据获取失败，上游不可达"}` | 立即抓取 |
@@ -81,7 +81,7 @@ etf-premium-tracker/
 ### 关键约定
 - ETF 静态元数据在 `go/internal/etfs/etfs.go`（Python 版另有一份在 `backend/main.py`，改时必须同步）
 - `watchlist.txt` — 每行一个代码，置顶显示并带星标
-- 日内历史每只 ETF 最多保留 **480 条**（约4小时，30s间隔）
+- 日内历史每只 ETF 最多保留 **480 条**（约 10 天，30 分钟间隔）
 - 每日快照**仅在收盘后（15:00 之后）保存一次**（`lastDailySave` 记录日期防重复；需至少一只 ETF 有 IOPV），比 Python 版更严格（Python 在开盘前也会保存）
 - `/api/etfs` 不查数据库，纯内存缓存
 - 后台轮询与手动 `/api/refresh` 共用 `refreshMu` 互斥
@@ -89,7 +89,7 @@ etf-premium-tracker/
 ## 前端 (`frontend/script.js`)
 
 ### 刷新架构
-- 数据仅通过手动刷新按钮触发 `POST /api/refresh`；后端 30s 后台轮询保证数据新鲜，前端无需定时器
+- 数据仅通过手动刷新按钮触发 `POST /api/refresh`；后端 30m 后台轮询保证数据新鲜，前端无需定时器
 - `fetchData()` 拉取 `/api/etfs` 渲染网格；`refreshData()` 手动刷新后同样渲染
 
 ### 全局状态

@@ -29,7 +29,7 @@ func Parse() (*Config, error) {
 	cfg := &Config{}
 	fs := flag.NewFlagSet("etf-premium-tracker", flag.ContinueOnError)
 	fs.StringVar(&cfg.Addr, "addr", ":8000", "HTTP 监听地址")
-	fs.DurationVar(&cfg.PollInterval, "poll", 30*time.Second, "后台轮询上游数据的间隔")
+	fs.DurationVar(&cfg.PollInterval, "poll", 30*time.Minute, "后台轮询上游数据的间隔")
 	fs.DurationVar(&cfg.FetchTimeout, "timeout", 10*time.Second, "单次上游抓取的超时")
 	fs.StringVar(&cfg.DataDir, "data-dir", "backend/data", "运行数据目录（相对 CWD）")
 	fs.StringVar(&cfg.WatchlistFile, "watchlist", "backend/watchlist.txt", "置顶 ETF 代码文件（相对 CWD）")

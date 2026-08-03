@@ -3,7 +3,7 @@
 // 用法：
 //
 //	go run ./cmd/server            # 默认配置，监听 :8000
-//	go run ./cmd/server -poll 30s  # 调整轮询间隔
+//	go run ./cmd/server -poll 30m  # 调整轮询间隔
 //
 // 所有数据/文件路径默认相对 CWD，可用 -data-dir / -watchlist / -fees / -frontend 覆盖。
 package main
