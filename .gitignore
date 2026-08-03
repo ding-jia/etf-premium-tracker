@@ -1,3 +1,6 @@
 __pycache__/
 *.pyc
 .reasonix/
+backend/data/
+go/server.exe
+go/bin/
