@@ -85,7 +85,8 @@ func New(opts Options) *Server {
 		opts.Fetcher = quoteFetcher{meta: opts.Meta, fees: opts.Fees, timeout: opts.Config.FetchTimeout}
 	}
 	if opts.Now == nil {
-		opts.Now = time.Now
+		// 默认基于中国标准时间（UTC+8），不依赖系统时区。
+		opts.Now = func() time.Time { return time.Now().In(market.ShanghaiTZ) }
 	}
 	return &Server{
 		cfg:     opts.Config,
@@ -264,6 +265,10 @@ func (s *Server) handleWatchlist(w http.ResponseWriter, _ *http.Request) {
 
 func (s *Server) handleToggleWatchlist(w http.ResponseWriter, r *http.Request) {
 	code := r.PathValue("code")
+	if !validCode(code) {
+		writeJSON(w, http.StatusBadRequest, model.ErrorDetail{Detail: "无效的 ETF 代码"})
+		return
+	}
 	codes, in, err := watchlist.Toggle(s.cfg.WatchlistFile, code)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, model.ErrorDetail{Detail: "写入 watchlist 失败"})
@@ -327,6 +332,19 @@ func (s *Server) serveStatic(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusNotFound, model.ErrorDetail{Detail: "frontend not found"})
+}
+
+// validCode 校验 6 位数字 ETF 代码（对齐全部静态元数据格式）。
+func validCode(code string) bool {
+	if len(code) != 6 {
+		return false
+	}
+	for _, c := range code {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

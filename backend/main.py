@@ -1,4 +1,4 @@
-import fcntl
+# 旧 Python/FastAPI 版，仅供历史参考，不再维护（运行版本为 Go 版，见 go/）。
 import json
 import time
 import asyncio
@@ -246,12 +246,8 @@ async def toggle_watchlist(code: str):
         codes.remove(code)
     else:
         codes.append(code)
-    with open(str(WATCHLIST_FILE), "w") as f:
-        fcntl.flock(f, fcntl.LOCK_EX)
-        try:
-            f.write("\n".join(codes) + "\n")
-        finally:
-            fcntl.flock(f, fcntl.LOCK_UN)
+    # 单进程单实例，直接写文件即可（Go 版用临时文件+rename 原子写）
+    WATCHLIST_FILE.write_text("\n".join(codes) + "\n")
     return {"codes": codes, "in_watchlist": code in codes}
 
 

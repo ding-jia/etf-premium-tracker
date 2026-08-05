@@ -39,6 +39,7 @@ func Open(path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxOpenConns(1) // SQLite 单写者，限制连接数避免并发锁竞争
 	if err := db.Ping(); err != nil {
 		db.Close()
 		return nil, err

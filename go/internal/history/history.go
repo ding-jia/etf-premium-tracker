@@ -27,6 +27,7 @@ func New(maxLen int) *Store {
 }
 
 // Load 从 JSON 文件加载历史；文件不存在时视为空历史（返回 nil 错误）。
+// 加载后按 maxLen 截断，保证历史超长（旧版本文件）时收敛。
 func (s *Store) Load(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -42,10 +43,18 @@ func (s *Store) Load(path string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.points = m
+	if s.maxLen > 0 {
+		for code, list := range s.points {
+			if len(list) > s.maxLen {
+				s.points[code] = list[len(list)-s.maxLen:]
+			}
+		}
+	}
 	return nil
 }
 
 // Save 将历史写入 JSON 文件（自动创建父目录）。
+// 采用"临时文件 + rename"原子写入，避免进程中途崩溃损坏整个历史文件。
 func (s *Store) Save(path string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -53,12 +62,26 @@ func (s *Store) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	if dir := filepath.Dir(path); dir != "." {
+	dir := filepath.Dir(path)
+	if dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return err
 		}
 	}
-	return os.WriteFile(path, data, 0o644)
+	tmp, err := os.CreateTemp(dir, ".history-*.json")
+	if err != nil {
+		return err
+	}
+	tmpName := tmp.Name()
+	defer os.Remove(tmpName) // rename 成功后此调用无害
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmpName, path)
 }
 
 // Append 追加一条采样，超出 maxLen 时丢弃最早的记录。

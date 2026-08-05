@@ -13,10 +13,8 @@ function toggleTheme() {
 }
 
 let allData = { nasdaq: [], sp500: [] };
-let isMarketOpen = false;
 let watchlist = new Set();
 let chartInstance = null;
-let currentChartCode = null;
 let maVisibility = { ma5: true, ma10: true, ma20: true };
 let lastChartRecords = [];
 
@@ -101,7 +99,7 @@ function renderCard(etf, minFee) {
   const isWL = watchlist.has(etf.code);
   const isBestFee = feeTotal != null && minFee != null && feeTotal === minFee;
   return `
-    <div class="list-item premium-${level}${isWL ? ' watchlist' : ''}${isBestFee ? ' best-fee' : ''}" data-code="${etf.code}" data-premium="${premium}">
+    <div class="list-item premium-${level}${isWL ? ' watchlist' : ''}${isBestFee ? ' best-fee' : ''}" data-code="${etf.code}">
       <span class="li-star" data-code="${etf.code}">${isWL ? '★' : '☆'}</span>
       <span class="li-code">${etf.code}</span>
       <span class="li-name">${escapeHtml(etf.name)}</span>
@@ -201,10 +199,13 @@ function updateCounts(nasdaq, sp500) {
 async function fetchData() {
   try {
     const resp = await fetch(API);
+    if (!resp.ok) {
+      const detail = await resp.json().catch(() => ({}));
+      throw new Error(detail.detail || '数据加载失败');
+    }
     const data = await resp.json();
 
     allData = { nasdaq: data.nasdaq, sp500: data.sp500 };
-    isMarketOpen = data.market_status === 'open';
 
     updateMarketStatus(data.market_status);
     document.getElementById('updateTime').textContent = data.update_time;
@@ -231,7 +232,6 @@ async function toggleWatchlist(code) {
 }
 
 async function selectETF(code) {
-  currentChartCode = code;
   const title = document.getElementById('chartTitle');
   const allEtfs = [...(allData.nasdaq || []), ...(allData.sp500 || [])];
   const etf = allEtfs.find(e => e.code === code);
@@ -288,15 +288,22 @@ function renderChart(records) {
     const d = new Date(r[0] * 1000);
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   });
-  const values = records.map(r => +r[1].toFixed(2));
+  // premium 可能为 null（IOPV 缺失时后端存 NULL），null 点不渲染；
+  // 均线仅对窗口内的有效点求均值，避免 NaN 污染整条曲线。
+  const values = records.map(r => (r[1] == null ? null : +r[1].toFixed(2)));
 
   function calcMA(data, period) {
     const r = [];
     for (let i = 0; i < data.length; i++) {
       if (i < period - 1) { r.push(null); continue; }
       let s = 0;
-      for (let j = i - period + 1; j <= i; j++) s += data[j];
-      r.push(+(s / period).toFixed(2));
+      let n = 0;
+      for (let j = i - period + 1; j <= i; j++) {
+        if (data[j] == null) continue;
+        s += data[j];
+        n++;
+      }
+      r.push(n > 0 ? +(s / n).toFixed(2) : null);
     }
     return r;
   }
@@ -419,14 +426,6 @@ function renderChart(records) {
   });
 }
 
-function closeChart() {
-  if (chartInstance) {
-    chartInstance.destroy();
-    chartInstance = null;
-  }
-  currentChartCode = null;
-}
-
 function toggleMALine(line) {
   maVisibility[line] = !maVisibility[line];
   document.querySelectorAll('.ma-toggle').forEach(el => {
@@ -452,7 +451,6 @@ async function refreshData() {
     }
     const data = await resp.json();
     allData = { nasdaq: data.nasdaq, sp500: data.sp500 };
-    isMarketOpen = data.market_status === 'open';
     updateMarketStatus(data.market_status);
     document.getElementById('updateTime').textContent = data.update_time;
     renderGrid(data.nasdaq, 'nasdaqGrid', 'nasdaqSort');

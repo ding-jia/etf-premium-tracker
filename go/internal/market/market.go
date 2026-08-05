@@ -8,6 +8,13 @@ package market
 
 import "time"
 
+// ShanghaiTZ 是中国标准时间（UTC+8，无夏令时）。
+//
+// 用 FixedZone 而非 time.LoadLocation：不依赖系统 tzdata，行为确定。
+// 服务全部时间判断（交易时段、每日快照日期、update_time）都应基于此时区，
+// 避免部署在非中国时区（如 UTC 的 VPS）时判断错位。
+var ShanghaiTZ = time.FixedZone("Asia/Shanghai", 8*60*60)
+
 // IsTrading 判断给定时刻是否处于 A 股交易时段。
 func IsTrading(t time.Time) bool {
 	if isWeekend(t) {

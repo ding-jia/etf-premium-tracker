@@ -78,3 +78,22 @@ func TestLoadMissingFile(t *testing.T) {
 		t.Fatalf("want empty history, got %d points", len(got))
 	}
 }
+
+func TestLoadTruncatesToMaxLen(t *testing.T) {
+	// 旧版本文件可能超过 maxLen，Load 后必须截断。
+	path := filepath.Join(t.TempDir(), "history.json")
+	if err := os.WriteFile(path, []byte(`{"513100":[[1,1.0],[2,2.0],[3,3.0],[4,4.0],[5,5.0]]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	s := New(3)
+	if err := s.Load(path); err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	got := s.Get("513100")
+	if len(got) != 3 {
+		t.Fatalf("len = %d, want 3", len(got))
+	}
+	if got[0].TS != 3 || got[2].TS != 5 {
+		t.Fatalf("points = %+v, want TS [3,4,5]", got)
+	}
+}

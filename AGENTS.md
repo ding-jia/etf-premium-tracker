@@ -42,14 +42,18 @@ etf-premium-tracker/
 
 ## 启动
 ```bash
-./start.sh        # 或 Windows 下 start.bat；等价于 cd go && go run ./cmd/server
+./start.sh        # 或 Windows 下 start.bat（等价于 cd go && go run ./cmd/server）
 # 访问 http://0.0.0.0:8000
 ```
+路径默认值（`-data-dir`/`-watchlist`/`-fees`/`-frontend`）按**仓库根**解析（从 CWD 向上探测含 `go/go.mod` 的目录），因此从 `go/` 目录直接 `go run ./cmd/server` 与 start.sh 行为一致，数据都落在 `backend/data/`。显式传入的相对路径按 CWD 解析。
+
 常用 flag：`-poll 30m`（轮询间隔）、`-addr :8001`（换端口）、`-frontend ../frontend`（静态目录）。
 
 ## 交易时间（A股）
 - **上午**：09:30-11:30，**下午**：13:00-15:00，**周末**：休市
 - 判断逻辑在 `go/internal/market/market.go`（总分钟 [570,690) ∪ [780,900)）
+- 全部时间判断基于 `market.ShanghaiTZ`（UTC+8 固定时区），不依赖系统时区
+- **已知局限**：未维护法定节假日/调休日历，节假日收盘后可能把节前数据写入当日快照
 
 ## Go 后端架构（`go/internal/server`）
 
@@ -99,11 +103,13 @@ etf-premium-tracker/
 | `watchlist` | 置顶代码集合 |
 | `chartInstance` | Chart.js 实例 |
 | `theme` / `maVisibility` | 主题、均线开关 |
+| `lastChartRecords` | 最近一次图表数据（均线切换时重渲染） |
 
 ### 图表
 - Chart.js 4.4.4（CDN），折线图 + 渐变填充
 - 数据来自 `/api/daily/{code}`（`HISTORY_API = '/api/daily'`）
-- 点击列表行打开弹窗式图表，点击外部或 Escape 关闭
+- 点击列表行在右侧图表面板展示历史走势（默认选中 513500）；溢价率为 null 的点不渲染，均线跳过 null 点
+- 支持切换 MA5/MA10/MA20 均线
 
 ### 排序
 - 每板块下拉框（溢价率/费率/成交额/规模 升降序、代码、名称）
@@ -111,9 +117,10 @@ etf-premium-tracker/
 
 ## Git 工作流
 - **无构建步骤** — Go 版 `go run ./cmd/server` 直接运行；前端纯 HTML/CSS/JS
-- `backend/data/`、`go/server.exe` 已 gitignore（运行时数据/构建产物）
+- `backend/data/`、`go/backend/`、`go/server.exe` 已 gitignore（运行时数据/残留数据目录/构建产物）
 - 使用中式简洁提交信息
 - 修改 Go 代码后：`cd go && go test ./...`，重启服务 `./start.sh`
+- 代码审查记录见 `review.md`（2026-08-05）
 
 ## 常见操作
 

@@ -17,6 +17,7 @@ import (
 	"etf-premium-tracker/internal/history"
 	"etf-premium-tracker/internal/model"
 	"etf-premium-tracker/internal/store"
+	"etf-premium-tracker/internal/watchlist"
 )
 
 // fakeFetcher 返回固定的两条行情，模拟腾讯接口。
@@ -179,6 +180,22 @@ func TestWatchlistGet(t *testing.T) {
 	}
 	if len(resp.Codes) != 1 || resp.Codes[0] != "159941" {
 		t.Fatalf("codes = %v", resp.Codes)
+	}
+}
+
+func TestWatchlistToggleInvalidCode(t *testing.T) {
+	srv := newTestServer(t, fakeFetcher{})
+	rec := doRequest(t, srv.Handler(), http.MethodPost, "/api/watchlist/toggle/abc123")
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rec.Code)
+	}
+	// 非法 code 不应写入 watchlist 文件
+	codes, err := watchlist.Read(srv.cfg.WatchlistFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(codes) != 0 {
+		t.Fatalf("codes = %v, want empty", codes)
 	}
 }
 

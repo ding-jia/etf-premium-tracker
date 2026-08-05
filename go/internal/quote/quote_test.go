@@ -1,9 +1,13 @@
 package quote
 
 import (
+	"context"
 	"math"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"etf-premium-tracker/internal/etfs"
 	"etf-premium-tracker/internal/fees"
@@ -60,6 +64,36 @@ func TestBuildURL(t *testing.T) {
 	want := "http://qt.gtimg.cn/q=sh513100,sz159941"
 	if got != want {
 		t.Fatalf("BuildURL = %q, want %q", got, want)
+	}
+}
+
+func TestFetchGBKTolerant(t *testing.T) {
+	// 上游响应混入非法 GBK 字节（0xFF）时，应以替换字符容错而非整批失败
+	// （对齐 Python 版 errors="replace" 的语义）。
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Write([]byte{'1', '~', 0xFF, 'x', '~'})
+	}))
+	defer srv.Close()
+
+	got, err := Fetch(context.Background(), srv.URL, time.Second)
+	if err != nil {
+		t.Fatalf("Fetch: %v", err)
+	}
+	if !strings.Contains(got, "\uFFFD") {
+		t.Fatalf("bad GBK byte should be replaced, got %q", got)
+	}
+	if !strings.Contains(got, "1~") {
+		t.Fatalf("valid prefix should survive, got %q", got)
+	}
+}
+
+func TestFetchHTTPError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "boom", http.StatusInternalServerError)
+	}))
+	defer srv.Close()
+	if _, err := Fetch(context.Background(), srv.URL, time.Second); err == nil {
+		t.Fatal("want error on non-200 status")
 	}
 }
 
