@@ -1,0 +1,43 @@
+# Air 热重载配置 — ETF 溢价率监控（Go 版）
+#
+# 用法：
+#   cd go && air                  # 监听 go/ 下 .go 文件变更，自动构建并重启服务
+#   air -c go/.air.toml           # 或从仓库根引用本配置
+#
+# 说明：
+#   - 构建产物输出到 go/tmp/（已 gitignore），不污染 go/server.exe
+#   - 数据/前端路径沿用 start.sh 的显式 flag；省略时 config 也会按仓库根自动解析
+#   - 仅监听 .go 源码：前端是纯静态文件，服务直接读取，改动无需重启后端
+#   - 参考：https://github.com/air-verse/air
+
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # 构建命令（在 root=go/ 目录下执行）
+  cmd = "go build -o ./tmp/server.exe ./cmd/server"
+  # 要运行的程序及其参数（直接 exec，不经 shell，无引号问题）
+  # v1.67.4 起 bin/args_bin 已弃用，统一用 entrypoint（二进制 + 参数）
+  entrypoint = [
+    "./tmp/server.exe",
+    "-frontend", "../frontend",
+    "-data-dir", "../backend/data",
+    "-watchlist", "../backend/watchlist.txt",
+    "-fees", "../backend/etf_fees.json",
+    "-addr", ":8000",
+  ]
+  delay = 1000                  # 文件变更后等待 1s 再构建，防连续保存抖动
+  include_ext = ["go"]          # 只监听 Go 源码
+  exclude_dir = ["tmp"]         # 不监听构建产物目录
+  exclude_regex = ["_test\\.go"] # 测试文件改动不触发重启
+  exclude_unchanged = true      # 内容未变化的文件不触发
+  send_interrupt = true         # 重启前先发中断信号（优雅关闭），超时后强杀
+  kill_delay = "2s"             # 优雅关闭宽限期
+  log = "tmp/build-errors.log"  # 构建错误写入该文件（随 tmp 一起清理）
+  stop_on_error = false         # 构建失败时保持监听，下次改动继续尝试
+
+[log]
+  time = false
+
+[misc]
+  clean_on_exit = true          # 退出时清理 go/tmp/

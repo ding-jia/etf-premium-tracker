@@ -48,6 +48,16 @@ cd go && go build -o server.exe ./cmd/server
 
 示例：`go run ./cmd/server -addr :9000 -poll 1m`
 
+### 开发：热重载（Air）
+
+```bash
+cd go && air   # 监听 .go 文件变更，自动构建并重启服务
+```
+
+- 需先安装 Air：`go install github.com/air-verse/air@latest`
+- 配置在 `go/.air.toml`：构建产物输出到 `go/tmp/`（已 gitignore），参数与 start.sh 对齐
+- 前端是纯静态文件，改 HTML/CSS/JS 无需重启后端，直接刷新浏览器
+
 ## API 端点
 
 | 路径 | 方法 | 说明 |

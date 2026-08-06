@@ -50,6 +50,15 @@ PowerShell 可用 `\start.ps1 [-Addr :9000] [-Poll 5m]`（参数可选，默认 
 
 常用 flag：`-poll 30m`（轮询间隔）、`-addr :8001`（换端口）、`-frontend ../frontend`（静态目录）。
 
+## 开发（热重载）
+```bash
+cd go && air   # 监听 go/ 下 .go 文件变更，自动构建并重启服务（配置：go/.air.toml）
+```
+- Air 版本 v1.67+（`go install github.com/air-verse/air@latest`）
+- 构建产物在 `go/tmp/`（已 gitignore），不污染 `go/server.exe`；退出时自动清理
+- 前端静态文件无需重启后端：只监听 `.go` 扩展名，改 HTML/CSS/JS 直接刷新浏览器
+- 参数与 start.sh 对齐（端口 :8000，路径指回仓库根）；改端口编辑 `go/.air.toml` 的 `-addr`
+
 ## 交易时间（A股）
 - **上午**：09:30-11:30，**下午**：13:00-15:00，**周末**：休市
 - 判断逻辑在 `go/internal/market/market.go`（总分钟 [570,690) ∪ [780,900)）
