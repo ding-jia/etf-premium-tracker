@@ -42,9 +42,10 @@ etf-premium-tracker/
 
 ## 启动
 ```bash
-./start.sh        # 或 Windows 下 start.bat（等价于 cd go && go run ./cmd/server）
+./start.sh        # 或 Windows 下 start.bat / start.ps1（等价于 cd go && go run ./cmd/server）
 # 访问 http://0.0.0.0:8000
 ```
+PowerShell 可用 `\start.ps1 [-Addr :9000] [-Poll 5m]`（参数可选，默认 :8000 / 30m）。
 路径默认值（`-data-dir`/`-watchlist`/`-fees`/`-frontend`）按**仓库根**解析（从 CWD 向上探测含 `go/go.mod` 的目录），因此从 `go/` 目录直接 `go run ./cmd/server` 与 start.sh 行为一致，数据都落在 `backend/data/`。显式传入的相对路径按 CWD 解析。
 
 常用 flag：`-poll 30m`（轮询间隔）、`-addr :8001`（换端口）、`-frontend ../frontend`（静态目录）。

@@ -23,7 +23,7 @@ A股美股 ETF 溢价率实时监控面板。跟踪沪深两市上市的纳斯�
 
 ```bash
 # 方式一：启动脚本（推荐，路径自动指向仓库根）
-./start.sh            # Windows 下用 start.bat
+./start.sh            # Windows 下用 start.bat 或 start.ps1
 
 # 方式二：直接运行（需在 go/ 目录内，路径相对 CWD）
 cd go && go run ./cmd/server
@@ -105,7 +105,7 @@ cd go && go build -o server.exe ./cmd/server
 
 ```
 etf-premium-tracker/
-├── start.sh / start.bat      # 启动脚本
+├── start.sh / start.bat / start.ps1   # 启动脚本
 ├── go/                       # Go 服务（本仓库主体）
 │   ├── cmd/server/main.go    # 入口：配置 → 初始化 → 轮询 + HTTP
 │   └── internal/
