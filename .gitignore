@@ -10,3 +10,4 @@ go/backend/
 
 # Air 热重载构建产物
 go/tmp/
+tmp/
