@@ -4,6 +4,10 @@ function applyTheme() {
   document.documentElement.setAttribute('data-theme', theme);
   const btn = document.getElementById('themeToggle');
   if (btn) btn.textContent = theme === 'bloomberg' ? 'LIT' : 'BBG';
+  // 已渲染的图表按当前主题重绘（renderChart 依 theme 取色，否则切换后配色滞后）
+  if (lastChartRecords.length) {
+    renderChart(lastChartRecords);
+  }
 }
 
 function toggleTheme() {
@@ -221,6 +225,10 @@ async function fetchData() {
 async function toggleWatchlist(code) {
   try {
     const resp = await fetch(`/api/watchlist/toggle/${code}`, { method: 'POST' });
+    if (!resp.ok) {
+      const detail = await resp.json().catch(() => ({}));
+      throw new Error(detail.detail || '操作失败');
+    }
     const data = await resp.json();
     watchlist = new Set(data.codes);
     // re-render with updated watchlist
@@ -244,6 +252,10 @@ async function selectETF(code) {
 
   try {
     const resp = await fetch(`${HISTORY_API}/${code}`);
+    if (!resp.ok) {
+      const detail = await resp.json().catch(() => ({}));
+      throw new Error(detail.detail || '历史数据加载失败');
+    }
     const data = await resp.json();
     lastChartRecords = data.daily || [];
     renderChart(lastChartRecords);

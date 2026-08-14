@@ -71,8 +71,11 @@ func main() {
 	srv.Start(ctx)
 
 	httpServer := &http.Server{
-		Addr:    cfg.Addr,
-		Handler: srv.Handler(),
+		Addr:              cfg.Addr,
+		Handler:           srv.Handler(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      15 * time.Second,
 	}
 	go func() {
 		<-ctx.Done()

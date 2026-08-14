@@ -120,3 +120,58 @@
 | 未跟踪实验文件 | ⏸️ 暂缓 | `pyproject.toml`、`src/`、`uv.lock`、`.python-version`、`tmp/` 未删除（用户意图不明），如需清理请单独确认 |
 
 验证：`go vet ./...`、`go test ./...` 全绿；从 `go/` 目录不带 flag 构建运行 server.exe，`/api/etfs`（17 只）、`/api/watchlist`、`/api/daily`、`/api/fees`、静态回退全部 200，非法 code 返回 400，数据正确落盘 `backend/data/`，未再创建 `go/backend/`。
+
+---
+
+# 第二轮审查 — 2026-08-14
+
+> 范围：全部 Go 后端 + 前端 + Python 旧版 + 配置/脚本/文档（在上轮修复基础上复审）。
+>
+> 方法：通读全部源码与单测；`go vet ./...`、`go test ./...`、`node --check script.js` 通过；`gofmt -l .` 干净；`go test -race` 因环境无 cgo 未能运行，竞争分析为静态推断。
+
+## ✅ 上轮修复项复核
+
+缺陷 1–4、健壮性 5–9 全部核实已落地（图表 null 处理、仓库根路径解析、history 原子写、ShanghaiTZ、SQLite 单连接、GBK 容错、toggle code 校验、死代码清理），代码与 review.md/AGENTS.md 一致。
+
+## 🔴 本轮新发现
+
+### N1. `history.Store.Get` 返回内部切片 → 与轮询 `Append` 数据竞争（已修）
+
+- 位置：`go/internal/history/history.go` `Get` → `go/internal/server/server.go` `handleHistory`
+- 问题：`Get` 持锁仅返回切片引用，`handleHistory` 解锁后 `json.Marshal` 读取；后台轮询 `Append` 持锁原地写同一 backing array（容量足够时）。并发读写下未定义行为。单测为顺序执行，race detector 也测不出。
+- 修复：`Get` 返回副本 `append([]model.HistoryPoint(nil), ...)`，注释说明缘由。
+
+### N2. 主题切换后图表配色不刷新（已修）
+
+- 位置：`frontend/script.js` `applyTheme`；`frontend/bloomberg.css`
+- 问题：`toggleTheme` 只改 `data-theme`，不重绘已渲染 Chart（`renderChart` 按 `theme` 取色）；且 bloomberg.css 缺 `.ma-toggle` 规则，深色主题下开关仍是浅色样式。
+- 修复：`applyTheme` 在有 `lastChartRecords` 时重绘；bloomberg.css 补 `.ma-toggle`（含 `.active`/`:hover`）深色覆盖。
+
+### N3. 前端 `toggleWatchlist` / `selectETF` 不检查 `resp.ok`（已修）
+
+- 位置：`frontend/script.js`
+- 问题：与 `fetchData`/`refreshData` 不一致；后端 5xx 时 `data.codes` undefined → `new Set(undefined)` 抛错，提示误导且星标状态不同步。
+- 修复：两处均按 `fetchData` 模式检查 `resp.ok`，非 2xx 抛带 detail 的错误。
+
+### N4. `http.Server` 无读写超时（已修）
+
+- 位置：`go/cmd/server/main.go`
+- 问题：慢客户端可长期占用连接（gosec G112）。
+- 修复：`ReadHeaderTimeout: 5s`、`ReadTimeout/WriteTimeout: 15s`。
+
+### N5. `internal/market/market.go` CRLF 行尾（已修）
+
+- `gofmt -l` 报红，全仓库唯一非 LF 的 Go 文件；`gofmt -w` 统一为 LF。
+
+## 🟡 遗留（未修，记录在案）
+
+| # | 位置 | 问题 | 建议 |
+|---|---|---|---|
+| N6 | `README.md:28-29`、`AGENTS.md` start.sh 描述、`model.go:108` UpdateTime 注释 | 文档漂移：README"方式二路径相对 CWD"已过期（config 现按仓库根解析）；AGENTS.md 称 start.sh 为 `go run`，实际是编译运行 exe；UpdateTime 注释"本地时区"实为上海时区 | 下次文档改动时一并修正 |
+| N7 | `server.go` history/daily handler、`quote.go` Fetch、`script.js` 排序/重复渲染 | history/daily 不校验 code（与 toggle 不一致）；Fetch 无 UA 与响应体大小限制；null 溢价按 0 参与排序；fetchData/refreshData 渲染逻辑重复 | 低优先，可并入日常小清理 |
+| N8 | `market.go` | 无节假日日历，法定假期工作日会显示 "open" 且 15:00 后把节前陈旧数据写入当日快照（上轮已记录，仍存在） | 维持 AGENTS.md 已知局限，建议接交易所日历 |
+
+## 📋 验证
+
+- `go vet ./...`、`go test ./...`（9 包）全绿；`gofmt -l .` 空；`node --check script.js` 通过。
+- 本轮改动文件：`go/internal/history/history.go`、`go/cmd/server/main.go`、`frontend/script.js`、`frontend/bloomberg.css`、`go/internal/market/market.go`（仅行尾）。

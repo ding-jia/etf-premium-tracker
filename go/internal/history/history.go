@@ -96,9 +96,12 @@ func (s *Store) Append(code string, ts int64, premium *float64) {
 	s.points[code] = list
 }
 
-// Get 返回某只 ETF 的完整历史（调用方不得修改）。
+// Get 返回某只 ETF 的完整历史副本。
+//
+// 返回副本而非内部切片：调用方（如 handleHistory 在锁外 json.Marshal）与
+// 后台轮询的 Append 并发读写同一 backing array 会构成数据竞争，副本彻底隔离。
 func (s *Store) Get(code string) []model.HistoryPoint {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.points[code]
+	return append([]model.HistoryPoint(nil), s.points[code]...)
 }
