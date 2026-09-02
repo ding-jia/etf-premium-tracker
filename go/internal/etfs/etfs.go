@@ -27,25 +27,4 @@ var All = []model.ETF{
 	{Code: "513650", Name: "标普500ETF南方", Category: "sp500", Manager: "南方基金", Exchange: "SH"},
 }
 
-// Get 按代码查找 ETF 的静态元数据，未收录时返回 (零值, false)。
-func Get(code string) (model.ETF, bool) {
-	for _, etf := range All {
-		if etf.Code == code {
-			return etf, true
-		}
-	}
-	return model.ETF{}, false
-}
 
-// Categories 按板块返回 code 列表，保持 All（即 main.py）中的原始顺序。
-func Categories() (nasdaq, sp500 []string) {
-	for _, etf := range All {
-		switch etf.Category {
-		case "nasdaq":
-			nasdaq = append(nasdaq, etf.Code)
-		case "sp500":
-			sp500 = append(sp500, etf.Code)
-		}
-	}
-	return nasdaq, sp500
-}

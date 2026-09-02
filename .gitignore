@@ -1,9 +1,8 @@
 __pycache__/
 *.pyc
-.reasonix/
 backend/data/
+go/server
 go/server.exe
-go/bin/
 
 # Go 版以默认路径运行时的残留数据目录（正确数据在 backend/data/）
 go/backend/

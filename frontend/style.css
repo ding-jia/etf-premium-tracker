@@ -16,10 +16,6 @@
   --accent-cyan: #0891b2;
   --green: #16a34a;
   --green-bg: rgba(22, 163, 74, 0.08);
-  --yellow: #ca8a04;
-  --yellow-bg: rgba(202, 138, 4, 0.08);
-  --orange: #ea580c;
-  --orange-bg: rgba(234, 88, 12, 0.08);
   --red: #dc2626;
   --red-bg: rgba(220, 38, 38, 0.08);
   --purple: #7c3aed;
@@ -266,8 +262,6 @@ main {
   align-items: center;
   justify-content: center;
 }
-
-/* old columns override removed */
 
 /* ===== Section Header ===== */
 .section-header {
@@ -550,15 +544,6 @@ footer {
   color: var(--text-muted);
   font-size: 0.75rem;
   border-top: 1px solid var(--border);
-}
-
-footer a {
-  color: var(--accent-blue);
-  text-decoration: none;
-}
-
-footer a:hover {
-  text-decoration: underline;
 }
 
 #premiumChart {

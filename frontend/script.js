@@ -159,7 +159,7 @@ function renderGrid(data, containerId, sortSelectId) {
   container.querySelectorAll('.list-item').forEach(el => {
     el.addEventListener('click', (e) => {
       if (e.target.classList.contains('li-star')) return;
-      openChart(el.dataset.code);
+      selectETF(el.dataset.code);
     });
   });
 }
@@ -263,10 +263,6 @@ async function selectETF(code) {
     handleError('selectETF', err, '历史数据加载失败');
     renderChart([]);
   }
-}
-
-async function openChart(code) {
-  selectETF(code);
 }
 
 function renderChart(records) {
@@ -447,10 +443,6 @@ function toggleMALine(line) {
     renderChart(lastChartRecords);
   }
 }
-
-window.addEventListener('beforeunload', () => {
-  if (chartInstance) chartInstance.destroy();
-});
 
 async function refreshData() {
   const btn = document.getElementById('refreshBtn');
