@@ -116,11 +116,14 @@ function renderGrid(data, gridId, sortId) {
 <span>${fmtAmt(e.amount)}</span><span>${fmtScale(e.fund_scale)}</span></div>`;
   }).join("");
   // 事件委托：star点击 → 切换置顶，其他区域点击 → 选中看图表
-  grid.onclick = e => {
-    const star = e.target.closest(".li-star");
+  grid.onclick = function(e) {
+    var star = e.target.closest(".li-star");
     if (star) { toggleWL(star.dataset.code); return; }
-    const item = e.target.closest(".list-item");
-    if (item) select(item.dataset.code);
+    var item = e.target.closest(".list-item");
+    if (item && item.dataset.code) {
+      console.log("[click]", item.dataset.code);
+      select(item.dataset.code);
+    }
   };
 }
 
@@ -169,6 +172,7 @@ function toggleWL(code) {
 
 // ===== 图表 =====
 async function select(code) {
+  console.log("[select]", code);
   const all=[...D.nasdaq,...D.sp500], etf=all.find(e=>e.code===code);
   $("chartTitle").textContent=etf?`${etf.name} (${code})`:code;
   document.querySelectorAll(".list-item.selected").forEach(el=>el.classList.remove("selected"));
@@ -183,6 +187,7 @@ async function select(code) {
 }
 
 function drawChart(rec) {
+  console.log("[drawChart]", rec.length, "points");
   const cvs=$("premiumChart");
   if(!cvs) return;
   if(chart){chart.destroy();chart=null}
