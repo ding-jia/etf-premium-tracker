@@ -31,7 +31,7 @@ main{flex:1;min-height:0;padding:12px 16px;overflow:hidden}
 .list-panel{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;min-height:0}
 .list-panel>div{display:flex;flex-direction:column;flex:1;min-height:0}
 .list-panel .list{flex:1;min-height:0;overflow-y:auto}
-.chart-panel{flex:0 0 40%;min-width:0;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:8px;min-height:0}
+.chart-panel{flex:0 0 40%;min-width:0;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:8px;min-height:0;padding:12px}
 .section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .section-header h2{font-size:.9rem;display:flex;align-items:center;gap:8px}
 .badge{font-size:.65rem;padding:2px 6px;border-radius:4px;font-weight:600;color:#fff}
@@ -40,7 +40,7 @@ main{flex:1;min-height:0;padding:12px 16px;overflow:hidden}
 .section-controls{display:flex;align-items:center;gap:8px}
 .count{font-size:.75rem;color:var(--muted)}
 .sort-select{font-size:.75rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text)}
-.list-header,.list-item{display:grid;grid-template-columns:24px 60px 1fr 80px 55px 65px 60px 70px 55px 70px 65px;align-items:center;padding:4px 8px;font-size:.75rem;gap:4px}
+.list-header,.list-item{display:grid;grid-template-columns:24px 60px 1fr 50px 65px 60px 70px 50px 70px 60px;align-items:center;padding:4px 8px;font-size:.75rem;gap:4px}
 .list-header{color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);flex-shrink:0}
 .list{display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1;min-height:0}
 .list-item{cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
@@ -60,7 +60,7 @@ main{flex:1;min-height:0;padding:12px 16px;overflow:hidden}
 .ma-toggles{display:flex;gap:6px}
 .ma-toggle{font-size:.7rem;padding:2px 8px;border-radius:4px;cursor:pointer;background:var(--border);color:var(--muted);transition:all .15s}
 .ma-toggle.active{background:var(--blue);color:#fff}
-.chart-body{flex:1;min-height:0;position:relative;padding:8px}
+.chart-body{flex:1;min-height:0;position:relative}
 footer{padding:8px 16px;border-top:1px solid var(--border);font-size:.7rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0}
 @media(max-width:900px){.columns{flex-direction:column}.chart-panel{flex:none;min-height:250px}}
 </style>
@@ -80,10 +80,10 @@ footer{padding:8px 16px;border-top:1px solid var(--border);font-size:.7rem;color
 <main><div class="columns">
 <section class="list-panel">
 <div><div class="section-header"><h2><span class="badge badge-nasdaq">NASDAQ</span> 纳指ETF</h2><div class="section-controls"><span class="count" id="nasdaqCount">0只</span><select id="nasdaqSort" class="sort-select"><option value="premium-desc">溢价率↓</option><option value="premium-asc">溢价率↑</option><option value="fee-desc">费率↓</option><option value="fee-asc">费率↑</option><option value="amount-desc">成交额↓</option><option value="amount-asc">成交额↑</option><option value="scale-desc">规模↓</option><option value="scale-asc">规模↑</option></select></div></div>
-<div class="list-header"><span></span><span>代码</span><span>名称</span><span>管理人</span><span>费率</span><span>现价</span><span>涨跌</span><span>溢价率</span><span>状态</span><span>成交额</span><span>规模</span></div>
+<div class="list-header"><span></span><span>代码</span><span>管理人</span><span>费率</span><span>现价</span><span>涨跌</span><span>溢价率</span><span>状态</span><span>成交额</span><span>规模</span></div>
 <div class="list" id="nasdaqGrid"></div></div>
 <div><div class="section-header"><h2><span class="badge badge-sp500">S&P500</span> 标普ETF</h2><div class="section-controls"><span class="count" id="sp500Count">0只</span><select id="sp500Sort" class="sort-select"><option value="premium-desc">溢价率↓</option><option value="premium-asc">溢价率↑</option><option value="fee-desc">费率↓</option><option value="fee-asc">费率↑</option><option value="amount-desc">成交额↓</option><option value="amount-asc">成交额↑</option><option value="scale-desc">规模↓</option><option value="scale-asc">规模↑</option></select></div></div>
-<div class="list-header"><span></span><span>代码</span><span>名称</span><span>管理人</span><span>费率</span><span>现价</span><span>涨跌</span><span>溢价率</span><span>状态</span><span>成交额</span><span>规模</span></div>
+<div class="list-header"><span></span><span>代码</span><span>管理人</span><span>费率</span><span>现价</span><span>涨跌</span><span>溢价率</span><span>状态</span><span>成交额</span><span>规模</span></div>
 <div class="list" id="sp500Grid"></div></div>
 </section>
 <section class="chart-panel">
