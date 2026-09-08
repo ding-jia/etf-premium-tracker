@@ -177,13 +177,17 @@ async function select(code) {
   // 优先使用localStorage中的溢价率历史，否则尝试K线API
   let rec=JSON.parse(localStorage.getItem("etf_h_"+code)||"[]");
   if(rec.length<3) rec=await fetchDaily(code);
-  lastRec=rec; drawChart(rec);
+  lastRec=rec;
+  // 延迟一帧确保DOM已更新，canvas尺寸已确定
+  requestAnimationFrame(()=>drawChart(rec));
 }
 
 function drawChart(rec) {
-  const cvs=$("premiumChart"), ctx=cvs.getContext("2d");
+  const cvs=$("premiumChart");
+  if(!cvs) return;
   if(chart){chart.destroy();chart=null}
-  if(!rec.length){ctx.clearRect(0,0,cvs.width,cvs.height);return}
+  if(!rec||!rec.length){return}
+  const ctx=cvs.getContext("2d");
   const isBB=theme==="bloomberg";
   const lc=isBB?"#ff8c00":"#2563eb", fc=isBB?"rgba(255,140,0,":"rgba(37,99,235,";
   const tc=isBB?"#787878":"#9ca3af", gc=isBB?"rgba(42,42,42,.6)":"rgba(226,230,234,.6)";
@@ -191,7 +195,8 @@ function drawChart(rec) {
   const vals=rec.map(r=>r[1]==null?null:+r[1].toFixed(2));
   const maC={ma5:isBB?"#fff":"#6b7280",ma10:isBB?"#38bdf8":"#8b5cf6",ma20:isBB?"#22c55e":"#dc2626"};
   function calcMA(d,n){const r=[];for(let i=0;i<d.length;i++){if(i<n-1){r.push(null);continue}let s=0,c=0;for(let j=i-n+1;j<=i;j++)if(d[j]!=null){s+=d[j];c++}r.push(c?+(s/c).toFixed(2):null)}return r}
-  const ds=[{label:"溢价率%",data:vals,borderColor:lc,backgroundColor:c=>{const g=c.chart.ctx.createLinearGradient(0,0,0,320);g.addColorStop(0,fc+"0.25)");g.addColorStop(1,fc+"0)");return g},borderWidth:2,pointRadius:0,tension:.3,fill:true}];
+  const gradientBg=(context)=>{const g=context.chart.ctx.createLinearGradient(0,0,0,320);g.addColorStop(0,fc+"0.25)");g.addColorStop(1,fc+"0)");return g};
+  const ds=[{label:"溢价率%",data:vals,borderColor:lc,backgroundColor:gradientBg,borderWidth:2,pointRadius:0,tension:.3,fill:true}];
   ["ma5","ma10","ma20"].forEach(k=>{if(ma[k])ds.push({label:k.toUpperCase(),data:calcMA(vals,+k.slice(2)),borderColor:maC[k],backgroundColor:"transparent",borderWidth:1,pointRadius:0,tension:.3,fill:false,borderDash:k==="ma5"?[]:k==="ma10"?[4,2]:[6,3]})});
   chart=new Chart(ctx,{type:"line",data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},interaction:{intersect:false,mode:"index"},plugins:{legend:{display:false},tooltip:{backgroundColor:isBB?"#1a1a1a":"#fff",titleColor:isBB?"#c8c8c8":"#1f2937",bodyColor:lc,borderColor:isBB?"#333":"#e2e6ea",borderWidth:1,padding:10,callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y!=null?c.parsed.y.toFixed(2)+"%":"--"}`}}},scales:{x:{display:true,grid:{display:false},ticks:{color:tc,font:{size:10},maxTicksLimit:10,autoSkip:true}},y:{display:true,grid:{color:gc},ticks:{color:tc,font:{size:10},callback:v=>v.toFixed(1)+"%"}}}}});
 }
