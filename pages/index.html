@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ETF溢价率监控</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#f8f9fa;--card:#fff;--text:#1f2937;--muted:#9ca3af;--border:#e5e7eb;--blue:#2563eb;--red:#dc2626;--green:#16a34a;--purple:#9333ea}
+[data-theme=bloomberg]{--bg:#0a0a0a;--card:#141414;--text:#c8c8c8;--muted:#787878;--border:#2a2a2a;--blue:#ff8c00;--red:#ff4444;--green:#22c55e;--purple:#a855f7}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text)}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--card);position:sticky;top:0;z-index:100}
+.header-left{display:flex;align-items:center;gap:10px}
+.logo{display:flex;align-items:center;gap:8px}
+.logo svg{color:var(--blue)}
+h1{font-size:1.1rem;font-weight:600}
+.subtitle{font-size:.75rem;color:var(--muted)}
+.header-right{display:flex;align-items:center;gap:12px}
+.status-badge{display:flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:.75rem;background:#dcfce7;color:#16a34a}
+.status-badge.closed{background:#fef2f2;color:#dc2626}
+.status-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.theme-toggle{background:none;border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:6px;cursor:pointer;font-size:.75rem}
+.update-info{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--muted)}
+#refreshBtn{background:none;border:none;cursor:pointer;color:var(--text);padding:4px;border-radius:4px;display:flex}
+#refreshBtn:hover{background:var(--border)}
+#refreshBtn.spin svg{animation:spin .6s ease}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+main{padding:16px 20px}
+.columns{display:flex;gap:16px}
+.list-panel{flex:3;min-width:0}
+.chart-panel{flex:2;min-width:300px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;display:flex;flex-direction:column}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.section-header h2{font-size:.9rem;display:flex;align-items:center;gap:8px}
+.badge{font-size:.65rem;padding:2px 6px;border-radius:4px;font-weight:600;color:#fff}
+.badge-nasdaq{background:#2563eb}
+.badge-sp500{background:#9333ea}
+.section-controls{display:flex;align-items:center;gap:8px}
+.count{font-size:.75rem;color:var(--muted)}
+.sort-select{font-size:.75rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text)}
+.list-header,.list-item{display:grid;grid-template-columns:24px 60px 1fr 80px 55px 65px 60px 70px 55px 70px 65px;align-items:center;padding:4px 8px;font-size:.75rem;gap:4px}
+.list-header{color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
+.list{max-height:calc(50vh - 60px);overflow-y:auto}
+.list-item{cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
+.list-item:hover{background:var(--border)}
+.list-item.selected{background:rgba(37,99,235,.1)}
+[data-theme=bloomberg] .list-item.selected{background:rgba(255,140,0,.1)}
+.list-item.watchlist{background:rgba(255,215,0,.05)}
+.li-star{cursor:pointer;font-size:1rem;text-align:center}
+.li-premium{font-weight:600}
+.premium-up .li-premium{color:var(--red)}
+.premium-down .li-premium{color:var(--green)}
+.premium-purple .li-premium{color:var(--purple)}
+.list-item.loading{opacity:.4;pointer-events:none}
+.up{color:var(--red)}.down{color:var(--green)}
+.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.chart-header h3{font-size:.85rem}
+.ma-toggles{display:flex;gap:6px}
+.ma-toggle{font-size:.7rem;padding:2px 8px;border-radius:4px;cursor:pointer;background:var(--border);color:var(--muted);transition:all .15s}
+.ma-toggle.active{background:var(--blue);color:#fff}
+.chart-body{flex:1;min-height:250px;position:relative}
+footer{padding:12px 20px;border-top:1px solid var(--border);font-size:.7rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap}
+@media(max-width:900px){.columns{flex-direction:column}.chart-panel{min-width:0}}
+</style>
+</head>
+<body>
+<header>
+<div class="header-left">
+<div class="logo"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><h1>ETF溢价率监控</h1></div>
+<span class="subtitle">A股 · 标普 &amp; 纳指</span>
+</div>
+<div class="header-right">
+<div class="status-badge" id="statusBadge"><span class="status-dot"></span><span id="statusText">加载中</span></div>
+<button class="theme-toggle" id="themeToggle" title="切换Bloomberg终端风格">BBG</button>
+<div class="update-info"><span id="updateTime">--</span><button id="refreshBtn" title="刷新"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button></div>
+</div>
+</header>
+<main><div class="columns">
+<section class="list-panel">
+<div><div class="section-header"><h2><span class="badge badge-nasdaq">NASDAQ</span> 纳指ETF</h2><div class="section-controls"><span class="count" id="nasdaqCount">0只</span><select id="nasdaqSort" class="sort-select"><option value="premium-desc">溢价率↓</option><option value="premium-asc">溢价率↑</option><option value="fee-desc">费率↓</option><option value="fee-asc">费率↑</option><option value="amount-desc">成交额↓</option><option value="amount-asc">成交额↑</option><option value="scale-desc">规模↓</option><option value="scale-asc">规模↑</option></select></div></div>
+<div class="list-header"><span></span><span>代码</span><span>名称</span><span>管理人</span><span>费率</span><span>现价</span><span>涨跌</span><span>溢价率</span><span>状态</span><span>成交额</span><span>规模</span></div>
+<div class="list" id="nasdaqGrid"></div></div>
+<div><div class="section-header"><h2><span class="badge badge-sp500">S&P500</span> 标普ETF</h2><div class="section-controls"><span class="count" id="sp500Count">0只</span><select id="sp500Sort" class="sort-select"><option value="premium-desc">溢价率↓</option><option value="premium-asc">溢价率↑</option><option value="fee-desc">费率↓</option><option value="fee-asc">费率↑</option><option value="amount-desc">成交额↓</option><option value="amount-asc">成交额↑</option><option value="scale-desc">规模↓</option><option value="scale-asc">规模↑</option></select></div></div>
+<div class="list-header"><span></span><span>代码</span><span>名称</span><span>管理人</span><span>费率</span><span>现价</span><span>涨跌</span><span>溢价率</span><span>状态</span><span>成交额</span><span>规模</span></div>
+<div class="list" id="sp500Grid"></div></div>
+</section>
+<section class="chart-panel">
+<div class="chart-header"><h3 id="chartTitle">标普500ETF博时 (513500)</h3>
+<div class="ma-toggles"><span class="ma-toggle active" data-ma="ma5">MA5</span><span class="ma-toggle active" data-ma="ma10">MA10</span><span class="ma-toggle active" data-ma="ma20">MA20</span></div></div>
+<div class="chart-body"><canvas id="premiumChart"></canvas></div>
+</section>
+</div></main>
+<footer><span>数据来源：腾讯财经</span><span>IOPV为实时估算净值，溢价率=(现价-IOPV)/IOPV×100%</span><span>点击刷新更新数据</span></footer>
+<script src="script.js"></script>
+</body>
+</html>
