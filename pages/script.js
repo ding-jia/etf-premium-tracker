@@ -109,7 +109,6 @@ function renderGrid(data, gridId, sortId) {
 <span class="li-star" data-code="${e.code}">${isWL?"★":"☆"}</span>
 <span>${e.code}</span>
 <span>${esc(e.manager)}</span>
-<span>${e.fee!=null?e.fee.toFixed(2)+"%":"--"}</span>
 <span>${e.price??"--"}</span>
 <span class="${e.change_pct>=0?"up":"down"}">${e.change_pct>=0?"+":""}${e.change_pct.toFixed(2)}%</span>
 <span class="li-premium">${e.premium!=null?(e.premium>=0?"+":"")+e.premium.toFixed(2)+"%":"N/A"}</span>
@@ -213,7 +212,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("sp500Sort").onchange=renderAll;
   document.querySelectorAll(".ma-toggle").forEach(el=>el.onclick=()=>{ma[el.dataset.ma]=!ma[el.dataset.ma];el.classList.toggle("active");if(lastRec.length)drawChart(lastRec)});
   // 骨架屏
-  ["nasdaqGrid","sp500Grid"].forEach(id=>{$(id).innerHTML=Array(7).fill(0).map(()=>'<div class="list-item loading"><span>☆</span><span>888888</span><span>加载</span><span>0.00%</span><span>88.888</span><span>+88.88%</span><span>+88.88%</span><span>加载</span><span>加载</span><span>加载</span></div>').join("")});
+  ["nasdaqGrid","sp500Grid"].forEach(id=>{$(id).innerHTML=Array(7).fill(0).map(()=>'<div class="list-item loading"><span>☆</span><span>888888</span><span>加载</span><span>88.888</span><span>+88.88%</span><span>+88.88%</span><span>加载</span><span>加载</span><span>加载</span></div>').join("")});
   await refresh();
   select("513500");
 });
