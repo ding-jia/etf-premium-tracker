@@ -341,15 +341,16 @@ main {
   margin-bottom: 2px;
 }
 
-.lh-star    { min-width: 18px; }
-.lh-code    { min-width: 52px; }
+/* 列宽/内边距必须与下方 .li-* 逐项一致，否则表头与数据行会整体错位 */
+.lh-star    { min-width: 28px; padding: 4px 5px; }
+.lh-code    { min-width: 48px; }
 .lh-name    { min-width: 0; flex: 1; }
-.lh-manager { min-width: 64px; flex-shrink: 1; }
+.lh-manager { min-width: 56px; flex-shrink: 1; }
 .lh-fee     { min-width: 40px; text-align: right; flex-shrink: 1; }
 .lh-price   { min-width: 44px; text-align: right; flex-shrink: 1; }
 .lh-change  { min-width: 48px; text-align: right; flex-shrink: 1; }
-.lh-premium { min-width: 60px; text-align: right; flex-shrink: 0; }
-.lh-label   { min-width: 40px; flex-shrink: 0; }
+.lh-premium { min-width: 56px; text-align: right; flex-shrink: 0; }
+.lh-label   { min-width: 40px; padding: 1px 6px; flex-shrink: 0; }
 .lh-amount  { min-width: 48px; text-align: right; flex-shrink: 0; }
 .lh-scale   { min-width: 48px; text-align: right; flex-shrink: 0; }
 
@@ -458,6 +459,7 @@ main {
 .li-manager {
   color: var(--text-muted);
   font-size: 0.75rem;
+  min-width: 56px;
   flex-shrink: 1;
 }
 
@@ -494,6 +496,7 @@ main {
   font-size: 0.95rem;
   min-width: 56px;
   text-align: right;
+  flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
 
@@ -504,6 +507,7 @@ main {
 .li-label {
   font-size: 0.7rem;
   color: var(--text-muted);
+  min-width: 40px;
   padding: 1px 6px;
   border-radius: 3px;
   flex-shrink: 0;
@@ -585,9 +589,10 @@ footer {
     font-size: 0.8rem;
   }
 
-  .li-manager {
-    display: none;
-  }
+.li-manager,
+.lh-manager {
+  display: none;
+}
 }
 
 @media (max-width: 768px) {
@@ -612,7 +617,36 @@ footer {
     text-align: center;
     padding: 14px;
   }
-  .li-price {
-    display: none;
-  }
+.li-price,
+.lh-price {
+  display: none;
+}
+}
+
+/* ===== 列表列对齐（表头与数据行共用同一套 flex 基准）=====
+   仅靠 min-width 无法对齐：内容一旦超过 min-width，该列就会被撑宽，
+   表头（"代码"两字）与数据行（"159501"六位数字）宽度不同 → 逐列错位。
+   这里给两端相同的 flex-basis 与相同的收缩因子：
+   - 空间充足时，每列宽度恒等于 basis；
+   - 空间不足时，收缩量按 basis 等比例分配，两端依然逐列相同。 */
+.list-header {
+  /* 与 .list-item 的左右边框等宽，保证两者内容盒宽度一致（差 1px 也会逐列累积） */
+  border-left: 3px solid transparent;
+  border-right: 1px solid transparent;
+}
+.lh-star,    .li-star    { flex: 0 1 28px;  min-width: 0; }
+.lh-code,    .li-code    { flex: 0 1 56px;  min-width: 0; }
+.lh-name,    .li-name    { flex: 1 1 140px; min-width: 0; }
+.lh-manager, .li-manager { flex: 0 1 84px;  min-width: 0; }
+.lh-fee,     .li-fee     { flex: 0 1 52px;  min-width: 0; }
+.lh-price,   .li-price   { flex: 0 1 56px;  min-width: 0; }
+.lh-change,  .li-change  { flex: 0 1 62px;  min-width: 0; }
+.lh-premium, .li-premium { flex: 0 1 78px;  min-width: 0; }
+.lh-label,   .li-label   { flex: 0 1 64px;  min-width: 0; }
+.lh-amount,  .li-amount  { flex: 0 1 86px;  min-width: 0; }
+.lh-scale,   .li-scale   { flex: 0 1 72px;  min-width: 0; }
+.list-header > span,
+.list-item > span {
+  white-space: nowrap;
+  overflow: hidden;
 }

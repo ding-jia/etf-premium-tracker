@@ -92,8 +92,23 @@ function formatScale(v) {
   return v.toFixed(1) + '亿';
 }
 
+// 列表出现竖向滚动条时，数据行的可用宽度比表头少一个滚动条宽度；
+// 把同样的宽度补给表头右内边距，表头与数据行才能逐列对齐。
+function syncHeaderGutter(listEl) {
+  if (!listEl) return;
+  const header = listEl.previousElementSibling;
+  if (!header || !header.classList.contains('list-header')) return;
+  if (header.dataset.basePadRight === undefined) {
+    header.dataset.basePadRight = String(parseFloat(getComputedStyle(header).paddingRight) || 0);
+  }
+  const scrollbar = listEl.offsetWidth - listEl.clientWidth;
+  header.style.paddingRight = (Number(header.dataset.basePadRight) + scrollbar) + 'px';
+}
+
 function renderCard(etf, minFee) {
-  const premium = etf.premium ?? 0;
+  // 保留 null：IOPV 缺失时后端返回 premium:null，这里必须继续显示 N/A，
+  // 用 ?? 0 会被渲染成 "+0.00% / 正常"，看起来像真实数据。
+  const premium = etf.premium;
   const level = premiumLevel(premium);
   const changeClass = etf.change_pct >= 0 ? 'up' : 'down';
   const changeSign = etf.change_pct >= 0 ? '+' : '';
@@ -146,6 +161,7 @@ function renderGrid(data, containerId, sortSelectId) {
   const sorted = [...pinned, ...rest];
 
   container.innerHTML = sorted.map(etf => renderCard(etf, minFee)).join('');
+  syncHeaderGutter(container);
 
   // star toggle
   container.querySelectorAll('.li-star').forEach(el => {
@@ -457,9 +473,13 @@ async function refreshData() {
     allData = { nasdaq: data.nasdaq, sp500: data.sp500 };
     updateMarketStatus(data.market_status);
     document.getElementById('updateTime').textContent = data.update_time;
+    // renderGrid 会重建 innerHTML（选中态随之丢失），先记住当前选中的代码再恢复
+    const selected = document.querySelector('.list-item.selected');
+    const selectedCode = selected ? selected.dataset.code : null;
     renderGrid(data.nasdaq, 'nasdaqGrid', 'nasdaqSort');
     renderGrid(data.sp500, 'sp500Grid', 'sp500Sort');
     updateCounts(data.nasdaq, data.sp500);
+    if (selectedCode) selectETF(selectedCode);
   } catch (err) {
     handleError('refreshData', err, '数据刷新失败，请稍后重试');
   } finally {
@@ -499,5 +519,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.getElementById('sp500Sort').addEventListener('change', () => {
     renderGrid(allData.sp500, 'sp500Grid', 'sp500Sort');
+  });
+
+  // 窗口尺寸变化会改变滚动条是否出现，需要重新对齐表头
+  window.addEventListener('resize', () => {
+    ['nasdaqGrid', 'sp500Grid'].forEach(id => syncHeaderGutter(document.getElementById(id)));
   });
 });
