@@ -1,7 +1,7 @@
 name: Deploy Pages
 on:
   push:
-    branches: [main]
+    branches: [master]   # 仓库默认分支是 master（此前写成 main，push 从未触发过部署）
     paths: ['pages/**']
   workflow_dispatch:
 permissions:
