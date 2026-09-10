@@ -175,3 +175,74 @@
 
 - `go vet ./...`、`go test ./...`（9 包）全绿；`gofmt -l .` 空；`node --check script.js` 通过。
 - 本轮改动文件：`go/internal/history/history.go`、`go/cmd/server/main.go`、`frontend/script.js`、`frontend/bloomberg.css`、`go/internal/market/market.go`（仅行尾）。
+
+---
+
+# 第三轮审查 — 2026-09-10
+
+> 范围：全库（Go 后端 + 本地前端 `frontend/` + 在线版 `pages/` + 文档/脚本）
+>
+> 方法：通读全部源码；`go vet ./...`、`go test ./...`、`go test -race ./...`、`gofmt -l .`、`node --check`；用 Go 服务 + 静态服务 + 无头 Chromium（通过 DevTools 协议量取每列像素坐标）对本地版与在线版做渲染比对；真实调用腾讯行情/K 线接口核对字段语义。
+>
+> 更正：第二轮记录「`go test -race` 因环境无 cgo 未能运行」不成立，本机可正常运行且全绿。
+
+## 本轮修复
+
+### 1. 前端把 null 溢价率显示成「+0.00% / 正常」（已修）
+
+- 位置：`frontend/script.js` `renderCard`
+- `const premium = etf.premium ?? 0;` 使 `premium != null ? ... : 'N/A'` 与 `premiumLabel()` 里的 null 分支全部失效；IOPV 缺失（后端确实会返回 `premium: null`）时渲染为 `+0.00%` + `正常`，与真实数据无法区分。
+- 修复：保留 null 原值，交给既有的 N/A 分支。
+
+### 2. `-poll 0` 会让进程 panic（已修）
+
+- 位置：`go/internal/config/config.go`、`go/internal/server/server.go` `Start`
+- `time.NewTicker` 对非正间隔 panic，且位于后台 goroutine、无 recover → 整个进程退出（实测 `interval 0s -> panic: non-positive interval`）。`-timeout 0` 在 `http.Client` 中语义是「永不超时」，上游卡死会长期占住 `refreshMu`。
+- 修复：`Parse()` 校验两个时长必须 > 0；新增 `TestParseRejectsNonPositiveDurations`。
+
+### 3. 在线版图表把收盘价当溢价率画（已修）
+
+- 位置：`pages/script.js` `fetchDaily` / `select` / `drawChart`
+- `qfqday` 行第 3 个字段是**收盘价**（实测 sh513500 2026-09-09 = 2.682），却被画在「溢价率%」轴上；同一天本地版显示 8.96%，在线版显示 2.7，相差 3 倍以上，且数据源会随 localStorage 记录条数在「溢价率」与「收盘价」之间自行切换。
+- 修复：优先用本地累积的溢价率历史；不足 2 条时回落收盘价，但数据集名改「收盘价」、纵轴单位改「元」、tooltip 同步，并在图表标题旁加图注说明。顺带用递增 token 丢弃「连续点击」产生的过期异步结果。
+
+### 4. 在线版与本版展示不一致（已修）
+
+- 位置：`pages/index.html` / `pages/script.js`
+- 分叉来源：`d0424a1`（删名称列）、`077a824`（删费率列）这两个提交**只改了 `pages/`**，本地版一直是 11 列。
+- 差异清单：少「名称」「费率」两列、少「代码/名称」排序项、无最低费率高亮、报错只在 console、时间格式不同（`2026/9/10 09:20:43` vs `2026-09-10 09:20:43`）、残留 3 处 `console.log`、`S&P500` 未转义。
+- 修复：补齐 11 列 / 10 个排序项 / best-fee 高亮 / toast 报错 / 统一时间格式 / 删除调试日志。脚本比对确认两端表头列、排序项、数据行、骨架行完全一致。
+
+### 5. 表头与数据行逐列错位（已修，两端）
+
+- 两个根因，均已实测确认：
+  1. 列宽用 `min-width` 约束 → 内容超过基准（如 "159501" 实际 51px > 48px）就把该列撑宽，表头与数据行宽度不同；
+  2. **列表内竖向滚动条**使数据行可用宽度小于表头 —— 在线版实测 15px，被 `flex:1` 的名称列吃掉，导致其后的列整体偏移 15px；本地版则因 `.list-item` 比表头多 1px 右边框而偏移 1px。
+- 修复：表头与数据行共用同一套 `flex` 基准（`flex: 0 1 <basis>` + `min-width: 0`，收缩量按 basis 等比例分配，理论上恒等）；补平左右边框差；新增 `syncHeaderGutter()` 把滚动条宽度补给表头右内边距并在 resize 时重算。
+- 验证（CDP 量取 11 列 × 2 端的 left/width）：修复前本地 11 列全错、在线 9 列错；修复后**两端 0 错位**。
+
+### 6. 刷新后选中行高亮丢失（已修，两端）
+
+- `renderGrid` 重建 `innerHTML` 会清掉 `.selected`：本地版刷新后图表不再跟随；在线版的「重新选中」逻辑因为读取时机在重建之后，实际是死代码。
+- 修复：两端都在重建前记住选中代码、重建后恢复。
+
+## 仍遗留（本轮未改，需决策）
+
+| # | 位置 | 问题 | 建议 |
+|---|---|---|---|
+| N9 | `backend/20060902.tar.gz` | 被 git 跟踪的 312KB 二进制：扩展名 `.tar.gz` 但内容是**未压缩 tar**（`tar xzf` 直接失败），且装的是 `.gitignore` 排除的 `data/premium.db` + `data/history.json` | 移出仓库，或改名 `.tar` / 真正 gzip；若属月度归档流程，建议改用 Release 附件 |
+| N10 | `go/internal/server/server.go` | 收盘时段进程没运行时，当日快照永久缺失（只在 `IsAfterClose` 时落盘） | 启动时回补最近缺失的交易日，或写入已知局限 |
+| N11 | 同上 | 部分抓取成功（如 3/17）会静默覆盖缓存与当日快照，本轮只加了告警日志 | 加阈值，低于 N% 视为失败 |
+| N12 | `go/internal/history` | `history.json` 从不清理已下架代码（现存 5 个僵尸 code，冻结在 2026-06-03，`/api/history/{code}` 仍可读到） | Load 时按 `etfs.All` 剪枝 |
+| N13 | `go/internal/quote/quote.go` | 上游走明文 `http://qt.gtimg.cn`，而 `pages/` 用的是 `https://`（说明上游支持 TLS） | 改 https |
+| N14 | `go/internal/server/server.go` | 默认监听全网卡 + CORS `*` + 两个无鉴权 POST 端点（同网段可改置顶、触发抓取） | 默认 `127.0.0.1:8000`，或在文档中说明 |
+| N15 | `go/cmd/server/main.go` | 关停时未等轮询 goroutine 收尾就 `db.Close()` | 用 done channel / WaitGroup 收尾 |
+
+## 验证
+
+- `go vet ./...`、`go test ./...`（11 包）、`go test -race ./...` 全绿；`gofmt -l .` 为空。
+- `node --check` 两个前端脚本通过。
+- 无头 Chromium 实测：两端 11 列逐列 left/width 完全相同（0 错位）；本地图表 `dataset=溢价率 %`（72 点），在线图表 `dataset=收盘价`、`y 轴=2.68元`（251 点）+ 图注。
+- 真实接口核对：`qfqday` 第 3 字段为收盘价（sh513500 2026-09-09 = 2.682），证实此前在线版标注错误。
+- 三份 ETF 元数据当前一致（17/17/17，费率数值一致）。
+- 本轮改动文件：`go/internal/config/config.go`、`go/internal/config/config_test.go`、`go/internal/server/server.go`、`go/internal/etfs/etfs.go`（仅 gofmt）、`frontend/script.js`、`frontend/style.css`、`frontend/index.html`、`pages/index.html`、`pages/script.js`、`AGENTS.md`、`README.md`。

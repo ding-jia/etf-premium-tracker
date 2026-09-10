@@ -131,9 +131,19 @@ etf-premium-tracker/
 │       └── server/           # 缓存、后台轮询、HTTP 路由、CORS、静态文件
 ├── frontend/                 # 前端 SPA（原生 JS + Chart.js CDN，无构建）
 ├── backend/                  # 数据文件：watchlist.txt / etf_fees.json / data/
-│                             #   （旧 Python 版源码保留作参考，不再维护）
+│                             #   （旧 Python 版源码已删除，此目录只放运行数据与配置）
+├── pages/                    # GitHub Pages 在线版（纯静态、无后端，浏览器直连腾讯接口）
 └── plan.md                   # Go 重写计划与决策记录
 ```
+
+### 在线版与本地版的差异
+
+`pages/` 是部署到 GitHub Pages 的纯静态版本，没有后端，因此**展示层一致、数据来源不同**：
+
+- 图表：本地版画后端 SQLite 里的每日**溢价率**；在线版画浏览器 localStorage 累积的溢价率，积累到 2 天以前会临时回落腾讯 K 线的**收盘价**，此时纵轴单位会变成"元"并在图注中说明。
+- 置顶：本地版写服务端 `backend/watchlist.txt`（多设备共享）；在线版存 localStorage（每浏览器独立）。
+
+改动列表列、排序项、配色等展示逻辑时，`frontend/` 与 `pages/` 两边都要改。
 
 ## 开发
 
