@@ -8,6 +8,7 @@ package config
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -41,6 +42,16 @@ func Parse() (*Config, error) {
 	fs.StringVar(&cfg.FrontendDir, "frontend", "frontend", "前端静态文件目录（默认相对仓库根）")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return nil, err
+	}
+
+	// 时长参数必须为正：PollInterval <= 0 会让 time.NewTicker 在
+	// server.Start 的后台 goroutine 里 panic（无 recover，进程直接退出）；
+	// FetchTimeout <= 0 在 http.Client 里表示"永不超时"，上游卡死会长期占住刷新锁。
+	if cfg.PollInterval <= 0 {
+		return nil, fmt.Errorf("-poll 必须大于 0，实际为 %s", cfg.PollInterval)
+	}
+	if cfg.FetchTimeout <= 0 {
+		return nil, fmt.Errorf("-timeout 必须大于 0，实际为 %s", cfg.FetchTimeout)
 	}
 
 	// 仅对"用户未显式覆盖"的路径默认值按仓库根解析。

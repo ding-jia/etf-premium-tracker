@@ -100,3 +100,28 @@ func TestParseExplicitFlagKeepsValue(t *testing.T) {
 		t.Fatalf("FrontendDir = %q, want %q", cfg.FrontendDir, filepath.Join(root, "frontend"))
 	}
 }
+
+// TestParseRejectsNonPositiveDurations 固化非法时长参数必须返回错误：
+// -poll 0 会让 time.NewTicker panic（进程崩溃），-timeout 0 会关闭抓取超时。
+func TestParseRejectsNonPositiveDurations(t *testing.T) {
+	makeFakeRepo(t)
+
+	cases := []struct {
+		name string
+		args []string
+	}{
+		{"poll 为 0", []string{"server", "-poll", "0"}},
+		{"poll 为负", []string{"server", "-poll", "-1m"}},
+		{"timeout 为 0", []string{"server", "-timeout", "0"}},
+		{"timeout 为负", []string{"server", "-timeout", "-5s"}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			os.Args = tc.args
+			t.Cleanup(func() { os.Args = nil })
+			if _, err := Parse(); err == nil {
+				t.Fatalf("Parse(%v) 应返回错误，实际为 nil", tc.args)
+			}
+		})
+	}
+}

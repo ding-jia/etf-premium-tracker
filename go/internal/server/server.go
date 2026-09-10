@@ -49,6 +49,11 @@ func (f quoteFetcher) FetchQuotes(ctx context.Context) ([]model.ETF, error) {
 	if len(data) == 0 {
 		return nil, errEmptyData
 	}
+	// 部分成功按成功处理（否则上游一次抖动就会让整个面板清空），
+	// 但必须留下痕迹：这份残缺数据会整体覆盖内存缓存，收盘后还会写进当日快照。
+	if len(data) < len(f.meta) {
+		log.Printf("警告: 上游仅返回 %d/%d 只 ETF，缓存已被部分数据覆盖", len(data), len(f.meta))
+	}
 	return data, nil
 }
 

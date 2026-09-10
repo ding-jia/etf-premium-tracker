@@ -26,5 +26,3 @@ var All = []model.ETF{
 	{Code: "159612", Name: "标普500ETF国泰", Category: "sp500", Manager: "国泰基金", Exchange: "SZ"},
 	{Code: "513650", Name: "标普500ETF南方", Category: "sp500", Manager: "南方基金", Exchange: "SH"},
 }
-
-
