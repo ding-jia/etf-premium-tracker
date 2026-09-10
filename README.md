@@ -157,6 +157,22 @@ cd go && go run ./cmd/export      # backend/data/premium.db → pages/data/daily
 
 服务器也内置了同样的导出：启动时、以及每天收盘落盘快照后都会重写该文件（用 `-pages-daily ""` 可关闭），因此本地跑着服务的话，只要定期提交推送即可。
 
+### 无人值守更新（GitHub Actions）
+
+仓库里的 `.github/workflows/update-data.yml` 每交易日收盘后（北京时间 15:10 / 15:40 / 16:10）在 GitHub 的 runner 上抓一次行情，把当日溢价率写进 `pages/data/daily.json` 并提交，然后显式触发 Pages 部署——**不需要本地开机**。
+
+```bash
+# 手动验证上游连通性（只抓取不写入）
+gh workflow run "Update Daily Data" -f dry_run=true
+```
+
+命令本身也能本地运行，用于手动补数据：
+
+```bash
+cd go && go run ./cmd/snapshot -dry-run   # 只抓取并打印
+cd go && go run ./cmd/snapshot -force     # 未到收盘也写入（写入的是盘中值）
+```
+
 ## 开发
 
 ```bash

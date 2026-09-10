@@ -1,0 +1,73 @@
+name: Update Daily Data
+
+# 静态站自己写不回仓库，所以用定时任务在 GitHub 的 runner 上抓行情、
+# 把当日溢价率写进 pages/data/daily.json，提交后再显式触发 Pages 部署。
+#
+# 注意：用 GITHUB_TOKEN 推的提交不会触发其它 workflow（GitHub 的防递归机制），
+# 因此下面必须显式 `gh workflow run "Deploy Pages"`，否则线上不会更新。
+on:
+  schedule:
+    # 北京时间 15:10 / 15:40 / 16:10（UTC 07:10 / 07:40 / 08:10），周一至周五。
+    # 跑三次是为了防止某一次排队延迟或上游抖动导致当天缺数据；
+    # 命令是幂等的，同一天只会替换当天的值。
+    - cron: '10 7 * * 1-5'
+    - cron: '40 7 * * 1-5'
+    - cron: '10 8 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: '只抓取不写入（用于验证上游连通性）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write   # 提交数据文件
+  actions: write    # 显式触发 Deploy Pages
+
+concurrency:
+  group: update-daily-data
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go/go.mod
+          cache-dependency-path: go/go.sum
+
+      - name: 抓取当日溢价率
+        working-directory: go
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            go run ./cmd/snapshot -dry-run
+          else
+            go run ./cmd/snapshot
+          fi
+
+      - name: 提交数据文件
+        id: commit
+        run: |
+          if git diff --quiet -- pages/data/daily.json; then
+            echo "数据无变化，跳过提交"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pages/data/daily.json
+          git commit -m "chore: 更新在线版日线数据（$(TZ=Asia/Shanghai date +%F)）"
+          git pull --rebase --autostash origin master
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: 触发 Pages 部署
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run "Deploy Pages" --ref master

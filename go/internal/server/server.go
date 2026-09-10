@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"etf-premium-tracker/internal/config"
+	"etf-premium-tracker/internal/dailyfile"
 	"etf-premium-tracker/internal/export"
 	"etf-premium-tracker/internal/fees"
 	"etf-premium-tracker/internal/history"
@@ -216,7 +217,7 @@ func (s *Server) ExportDaily() error {
 	for _, item := range s.meta {
 		codes = append(codes, item.Code)
 	}
-	data, sum, err := export.Daily(s.db, codes)
+	daily, sum, err := export.Daily(s.db, codes)
 	if err != nil {
 		return err
 	}
@@ -224,7 +225,11 @@ func (s *Server) ExportDaily() error {
 		log.Printf("跳过导出 %s：数据库里还没有每日快照", s.cfg.PagesDailyFile)
 		return nil
 	}
-	if err := export.WriteFile(s.cfg.PagesDailyFile, data); err != nil {
+	data, err := dailyfile.Marshal(daily)
+	if err != nil {
+		return err
+	}
+	if err := dailyfile.WriteFile(s.cfg.PagesDailyFile, data); err != nil {
 		return err
 	}
 	log.Printf("已导出在线版日线数据 %s（%d 只 / %d 点 / %s ~ %s / %d 字节）",

@@ -149,6 +149,15 @@ cd go && go run ./cmd/export     # backend/data/premium.db → pages/data/daily.
 
 服务器在启动时与每天收盘落盘快照后会各自动重写一次该文件（`-pages-daily ""` 可关闭；数据库为空时跳过写入，避免清空已提交的数据）。提交推送后由 GitHub Actions 自动部署。
 
+### 无人值守更新（GitHub Actions）
+
+`.github/workflows/update-data.yml` 在每交易日收盘后（北京时间 15:10 / 15:40 / 16:10）于 runner 上运行 `cmd/snapshot`：直接抓腾讯行情 → 用 `internal/dailyfile` 把当日溢价率并入 `pages/data/daily.json` → 提交 → **显式触发 Deploy Pages**。
+
+两个容易踩的点：
+
+- 用 `GITHUB_TOKEN` 推的提交**不会**触发其它 workflow，所以必须显式 `gh workflow run "Deploy Pages"`（因此该 workflow 需要 `actions: write` 权限）
+- `internal/dailyfile` 与 `internal/export` 分开是为了让 `cmd/snapshot` 不依赖 SQLite（纯 Go SQLite 编译很重，会拖慢 CI）
+
 ## Git 工作流
 - **无构建步骤** — Go 版 `go run ./cmd/server` 直接运行；前端纯 HTML/CSS/JS
 - `backend/data/`、`go/backend/`、`go/server.exe` 已 gitignore（运行时数据/残留数据目录/构建产物）

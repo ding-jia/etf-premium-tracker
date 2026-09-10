@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 
 	"etf-premium-tracker/internal/config"
+	"etf-premium-tracker/internal/dailyfile"
 	"etf-premium-tracker/internal/etfs"
 	"etf-premium-tracker/internal/export"
 	"etf-premium-tracker/internal/store"
@@ -53,14 +54,18 @@ func main() {
 		codes = append(codes, item.Code)
 	}
 
-	data, sum, err := export.Daily(db, codes)
+	daily, sum, err := export.Daily(db, codes)
 	if err != nil {
 		log.Fatalf("导出失败: %v", err)
 	}
 	if sum.Points == 0 {
 		log.Fatalf("%s 里没有每日快照，未写出文件（避免把在线版数据清空）", dbPath)
 	}
-	if err := export.WriteFile(*out, data); err != nil {
+	data, err := dailyfile.Marshal(daily)
+	if err != nil {
+		log.Fatalf("序列化失败: %v", err)
+	}
+	if err := dailyfile.WriteFile(*out, data); err != nil {
 		log.Fatalf("写入 %s 失败: %v", *out, err)
 	}
 	log.Printf("已导出 %s：%d 只 / %d 点 / %s ~ %s / %d 字节",

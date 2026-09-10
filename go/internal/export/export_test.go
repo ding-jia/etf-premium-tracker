@@ -1,10 +1,10 @@
 package export
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
+	"etf-premium-tracker/internal/dailyfile"
 	"etf-premium-tracker/internal/store"
 )
 
@@ -33,12 +33,16 @@ func TestDailySkipsCodesWithoutData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	data, sum, err := Daily(db, []string{"513500", "513100"})
+	daily, sum, err := Daily(db, []string{"513500", "513100"})
 	if err != nil {
 		t.Fatalf("Daily: %v", err)
 	}
 	if sum.Codes != 1 || sum.Points != 2 || sum.From != "2026-05-19" || sum.To != "2026-05-20" {
 		t.Fatalf("summary = %+v", sum)
+	}
+	data, err := dailyfile.Marshal(daily)
+	if err != nil {
+		t.Fatal(err)
 	}
 	want := `{"513500":[["2026-05-19",1.5],["2026-05-20",-2.25]]}`
 	if string(data) != want {
@@ -54,39 +58,26 @@ func TestDailyNullPremium(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	data, _, err := Daily(db, []string{"513100"})
+	daily, _, err := Daily(db, []string{"513100"})
 	if err != nil {
 		t.Fatalf("Daily: %v", err)
+	}
+	data, err := dailyfile.Marshal(daily)
+	if err != nil {
+		t.Fatal(err)
 	}
 	if want := `{"513100":[["2026-05-19",null]]}`; string(data) != want {
 		t.Fatalf("data = %s, want %s", data, want)
 	}
 }
 
-// WriteFile 必须创建父目录、可重复覆盖，且不残留临时文件。
-func TestWriteFileCreatesDirAndDoesNotLeaveTemp(t *testing.T) {
-	dir := filepath.Join(t.TempDir(), "nested")
-	path := filepath.Join(dir, "daily.json")
-
-	if err := WriteFile(path, []byte(`{"a":1}`)); err != nil {
-		t.Fatalf("WriteFile: %v", err)
-	}
-	if got, err := os.ReadFile(path); err != nil || string(got) != `{"a":1}` {
-		t.Fatalf("content = %s, err = %v", got, err)
-	}
-
-	if err := WriteFile(path, []byte(`{"b":2}`)); err != nil {
-		t.Fatalf("WriteFile 覆盖: %v", err)
-	}
-	if got, _ := os.ReadFile(path); string(got) != `{"b":2}` {
-		t.Fatalf("覆盖后 content = %s", got)
-	}
-
-	entries, err := os.ReadDir(dir)
+// 空库导出空 map（服务器的 ExportDaily 据此跳过写入，避免清空线上数据）。
+func TestDailyEmptyStore(t *testing.T) {
+	daily, sum, err := Daily(newTestDB(t), []string{"513500"})
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Daily: %v", err)
 	}
-	if len(entries) != 1 {
-		t.Fatalf("目录里残留了临时文件: %v", entries)
+	if len(daily) != 0 || sum.Points != 0 {
+		t.Fatalf("daily = %v, summary = %+v", daily, sum)
 	}
 }
