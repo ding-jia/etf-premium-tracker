@@ -19,6 +19,10 @@ on:
         description: '只抓取不写入（用于验证上游连通性）'
         type: boolean
         default: false
+      force:
+        description: '未到收盘也写入（写入的是盘中值，用于手动补数据或验证完整链路）'
+        type: boolean
+        default: false
 
 permissions:
   contents: write   # 提交数据文件
@@ -46,6 +50,8 @@ jobs:
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             go run ./cmd/snapshot -dry-run
+          elif [ "${{ inputs.force }}" = "true" ]; then
+            go run ./cmd/snapshot -force
           else
             go run ./cmd/snapshot
           fi
