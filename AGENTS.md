@@ -25,7 +25,8 @@ etf-premium-tracker/
 │   ├── index.html / style.css / bloomberg.css / script.js
 ├── pages/                       # GitHub Pages 在线版（纯静态、无后端，浏览器直连腾讯接口）
 │   ├── index.html               # 内联样式；列与排序项必须与 frontend/ 保持一致
-│   └── script.js                # 含第三份 ETF 元数据 META/FEES（改元数据时必须同步）
+│   ├── script.js                # 含第三份 ETF 元数据 META/FEES（改元数据时必须同步）
+│   └── data/daily.json          # 后端导出的每日溢价率历史（提交进仓库，在线版图表的数据源）
 └── go/                          # Go 重写版（当前运行版本）
     ├── go.mod / go.sum          # module etf-premium-tracker, go 1.26.5
     ├── cmd/server/main.go       # 入口：config → 初始化 → 轮询 + HTTP
@@ -134,11 +135,19 @@ cd go && air   # 监听 go/ 下 .go 文件变更，自动构建并重启服务�
 | 项目 | 本地版 | 在线版 |
 |---|---|---|
 | 行情 | 后端内存缓存（30 分钟轮询） | 浏览器直连腾讯 |
-| 图表数据 | `/api/daily`（SQLite 每日**溢价率**） | localStorage 累积的溢价率；不足 2 条时回落腾讯 K 线的**收盘价**（纵轴单位随之变"元"，并在图注说明） |
+| 图表数据 | `/api/daily`（SQLite 每日**溢价率**） | `pages/data/daily.json`（由 SQLite 导出、随仓库发布）+ localStorage 里更新的点；两者都为空时才回落腾讯 K 线的**收盘价**（纵轴单位变"元"并在图注说明） |
 | 置顶 | `backend/watchlist.txt`（服务端共享） | localStorage（每浏览器独立） |
 | 费率 | `/api/fees` | `pages/script.js` 内置 `FEES` |
 
 改展示层时两边都要改；两者的列宽模型（`.lh-*`/`.li-*` 的 `flex` 基准）也必须一致。
+
+### 更新在线版历史数据
+
+```bash
+cd go && go run ./cmd/export     # backend/data/premium.db → pages/data/daily.json
+```
+
+服务器在启动时与每天收盘落盘快照后会各自动重写一次该文件（`-pages-daily ""` 可关闭；数据库为空时跳过写入，避免清空已提交的数据）。提交推送后由 GitHub Actions 自动部署。
 
 ## Git 工作流
 - **无构建步骤** — Go 版 `go run ./cmd/server` 直接运行；前端纯 HTML/CSS/JS

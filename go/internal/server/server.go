@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"etf-premium-tracker/internal/config"
+	"etf-premium-tracker/internal/export"
 	"etf-premium-tracker/internal/fees"
 	"etf-premium-tracker/internal/history"
 	"etf-premium-tracker/internal/market"
@@ -132,6 +133,10 @@ func (s *Server) RefreshOnce(ctx context.Context) error {
 	if !isTrading && market.IsAfterClose(now) && s.lastDailySave != today {
 		if s.saveDailySnapshot(data, today) {
 			s.lastDailySave = today
+			// 快照落盘后同步刷新在线版使用的静态日线数据
+			if err := s.ExportDaily(); err != nil {
+				log.Printf("警告: 导出在线版日线数据失败: %v", err)
+			}
 		}
 	}
 
@@ -196,6 +201,35 @@ func (s *Server) saveDailySnapshot(data []model.ETF, today string) bool {
 	}
 	log.Printf("已保存 %s 每日快照（%d 只）", today, len(rows))
 	return true
+}
+
+// ExportDaily 重新生成在线版（GitHub Pages）使用的静态日线数据。
+//
+// 在线版是纯静态站、读不到 SQLite；把导出文件提交到仓库并部署后，
+// 它就能画出与本地版同源的真实溢价率曲线，而不是回落到收盘价。
+// 配置为空字符串时不做任何事；数据库还没有快照时跳过写入，避免把已提交的数据清空。
+func (s *Server) ExportDaily() error {
+	if s.cfg.PagesDailyFile == "" {
+		return nil
+	}
+	codes := make([]string, 0, len(s.meta))
+	for _, item := range s.meta {
+		codes = append(codes, item.Code)
+	}
+	data, sum, err := export.Daily(s.db, codes)
+	if err != nil {
+		return err
+	}
+	if sum.Points == 0 {
+		log.Printf("跳过导出 %s：数据库里还没有每日快照", s.cfg.PagesDailyFile)
+		return nil
+	}
+	if err := export.WriteFile(s.cfg.PagesDailyFile, data); err != nil {
+		return err
+	}
+	log.Printf("已导出在线版日线数据 %s（%d 只 / %d 点 / %s ~ %s / %d 字节）",
+		s.cfg.PagesDailyFile, sum.Codes, sum.Points, sum.From, sum.To, len(data))
+	return nil
 }
 
 func splitByCategory(data []model.ETF) (nasdaq, sp500 []model.ETF) {

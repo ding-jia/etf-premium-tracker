@@ -350,3 +350,54 @@ func TestDailySnapshotOnlyAfterClose(t *testing.T) {
 		t.Fatalf("second day snapshot missing: %+v", got)
 	}
 }
+
+// TestExportDailyWritesFile 验证 ExportDaily 会把每日快照写成在线版可用的 JSON。
+func TestExportDailyWritesFile(t *testing.T) {
+	srv := newTestServer(t, fakeFetcher{})
+	out := filepath.Join(t.TempDir(), "daily.json")
+	srv.cfg.PagesDailyFile = out
+
+	p := 2.5
+	if err := srv.db.UpsertDaily([]store.DailyRow{
+		{Code: "513100", Date: "2024-01-08", Premium: &p, Price: 1, IOPV: 1},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := srv.ExportDaily(); err != nil {
+		t.Fatalf("ExportDaily: %v", err)
+	}
+	body, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), `"513100":[["2024-01-08",2.5]]`) {
+		t.Fatalf("body = %s", body)
+	}
+}
+
+// TestExportDailySkipsWhenEmpty 验证数据库还没有快照时不写文件，
+// 避免把仓库里已提交的在线版数据清空。
+func TestExportDailySkipsWhenEmpty(t *testing.T) {
+	srv := newTestServer(t, fakeFetcher{})
+	out := filepath.Join(t.TempDir(), "daily.json")
+	srv.cfg.PagesDailyFile = out
+
+	if err := srv.ExportDaily(); err != nil {
+		t.Fatalf("ExportDaily: %v", err)
+	}
+	if _, err := os.Stat(out); !os.IsNotExist(err) {
+		t.Fatalf("空数据时不应写出文件，实际 err = %v", err)
+	}
+}
+
+// TestExportDailyDisabled 验证 PagesDailyFile 为空时是安全的空操作
+// （newTestServer 默认不设置该字段，其他用例因此不受影响）。
+func TestExportDailyDisabled(t *testing.T) {
+	srv := newTestServer(t, fakeFetcher{})
+	if srv.cfg.PagesDailyFile != "" {
+		t.Fatalf("测试配置应默认不导出，实际 %q", srv.cfg.PagesDailyFile)
+	}
+	if err := srv.ExportDaily(); err != nil {
+		t.Fatalf("ExportDaily 应为空操作: %v", err)
+	}
+}

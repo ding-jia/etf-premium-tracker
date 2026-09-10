@@ -122,6 +122,23 @@ async function fetchDaily(code) {
 const loadWL = () => { try{return new Set(JSON.parse(localStorage.getItem("etf_wl")||"[]"))}catch(e){return new Set()} };
 const saveWL = () => localStorage.setItem("etf_wl",JSON.stringify([...WL]));
 const loadSnap = code => { try{return JSON.parse(localStorage.getItem("etf_h_"+code)||"[]")}catch(e){return []} };
+// 后端导出的静态日线数据（go run ./cmd/export 生成，随 Pages 一起部署）
+const DAILY_URL = "data/daily.json";
+let DAILY = null;
+async function loadDaily(){
+  try{
+    const r = await fetch(DAILY_URL,{cache:"no-cache"});
+    if(!r.ok) return null;
+    return await r.json();
+  }catch(e){ return null; }
+}
+// 静态导出 + 本地累积合并：同一交易日以本地累积的为准（更新），再按日期升序。
+function mergeDaily(base,extra){
+  const m=new Map();
+  for(const p of (base||[])) m.set(p[0],p[1]);
+  for(const p of (extra||[])) m.set(p[0],p[1]);
+  return [...m.entries()].sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0).map(([d,v])=>[d,v]);
+}
 const saveSnap = (code,premium) => {
   if(premium==null) return;
   const k="etf_h_"+code, h=loadSnap(code);
@@ -217,15 +234,17 @@ async function select(code) {
   document.querySelectorAll(".list-item.selected").forEach(el=>el.classList.remove("selected"));
   const row=document.querySelector(`.list-item[data-code="${code}"]`);
   if(row) row.classList.add("selected");
-  // 图表只表达溢价率：优先用本地累积的溢价率历史。
-  // 在线版是纯静态站，拿不到后端的日线溢价库，历史不足时只能回落到收盘价，
-  // 但必须同时换掉数据集名与坐标轴单位（元），不能把价格当"溢价率"画。
-  let rec=loadSnap(code), mode="premium";
+  // 图表只表达溢价率。数据源优先级：
+  //   1) data/daily.json —— 后端导出的完整历史（随仓库部署，任何人打开都能看到）
+  //   2) localStorage    —— 本浏览器刷新时攒下的溢价率（可能比导出文件更新）
+  //   3) 腾讯 K 线收盘价 —— 兜底；此时必须换掉数据集名与坐标轴单位（元），
+  //                        不能把价格当"溢价率"画
+  let rec=mergeDaily(DAILY&&DAILY[code], loadSnap(code)), mode="premium";
   if(rec.length<2){ rec=await fetchDaily(code); mode="price"; }
   if(token!==selectToken) return;   // 期间用户又点了别的 ETF，丢弃过期结果
   lastRec=rec; lastMode=mode;
   $("chartNote").textContent = mode==="price"
-    ? "（在线版：暂无可用的本地溢价率历史，先显示收盘价；每点一次刷新会记录当天溢价率）"
+    ? "（暂无溢价率历史，先显示收盘价；每次点刷新会记录当天溢价率）"
     : "";
   // 延迟一帧确保DOM已更新，canvas尺寸已确定
   requestAnimationFrame(()=>drawChart(lastRec));
@@ -269,6 +288,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.querySelectorAll(".ma-toggle").forEach(el=>el.onclick=()=>{ma[el.dataset.ma]=!ma[el.dataset.ma];el.classList.toggle("active");if(lastRec.length)drawChart(lastRec)});
   // 骨架屏
   ["nasdaqGrid","sp500Grid"].forEach(id=>{$(id).innerHTML=Array(7).fill(0).map(()=>'<div class="list-item loading"><span class="li-star">☆</span><span class="li-code">888888</span><span class="li-name">加载中加载中</span><span class="li-manager">加载中</span><span class="li-fee">0.00%</span><span class="li-price">88.888</span><span class="li-change">+88.88%</span><span class="li-premium">+88.88%</span><span class="li-label">加载</span><span class="li-amount">加载</span><span class="li-scale">加载</span></div>').join("")});
+  DAILY = await loadDaily();
   await refresh();
   select("513500");
 });

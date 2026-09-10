@@ -68,6 +68,10 @@ func main() {
 	} else {
 		log.Printf("启动数据已就绪")
 	}
+	// 启动时也同步一次在线版静态日线数据，保证仓库里的导出文件不过期
+	if err := srv.ExportDaily(); err != nil {
+		log.Printf("警告: 导出在线版日线数据失败: %v", err)
+	}
 	srv.Start(ctx)
 
 	httpServer := &http.Server{

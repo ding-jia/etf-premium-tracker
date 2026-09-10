@@ -45,6 +45,7 @@ cd go && go build -o server.exe ./cmd/server
 | `-watchlist` | `backend/watchlist.txt` | 置顶 ETF 代码文件 |
 | `-fees` | `backend/etf_fees.json` | ETF 费率 JSON 文件 |
 | `-frontend` | `frontend` | 前端静态文件目录 |
+| `-pages-daily` | `pages/data/daily.json` | 在线版静态日线数据输出路径（空字符串 = 不导出） |
 
 示例：`go run ./cmd/server -addr :9000 -poll 1m`
 
@@ -133,6 +134,7 @@ etf-premium-tracker/
 ├── backend/                  # 数据文件：watchlist.txt / etf_fees.json / data/
 │                             #   （旧 Python 版源码已删除，此目录只放运行数据与配置）
 ├── pages/                    # GitHub Pages 在线版（纯静态、无后端，浏览器直连腾讯接口）
+│   └── data/daily.json       # 由后端数据库导出的每日溢价率历史（提交进仓库，随站点发布）
 └── plan.md                   # Go 重写计划与决策记录
 ```
 
@@ -140,10 +142,20 @@ etf-premium-tracker/
 
 `pages/` 是部署到 GitHub Pages 的纯静态版本，没有后端，因此**展示层一致、数据来源不同**：
 
-- 图表：本地版画后端 SQLite 里的每日**溢价率**；在线版画浏览器 localStorage 累积的溢价率，积累到 2 天以前会临时回落腾讯 K 线的**收盘价**，此时纵轴单位会变成"元"并在图注中说明。
+- 图表：两端画的是同一份每日**溢价率**。本地版直接读 SQLite；在线版读随仓库发布的 `pages/data/daily.json`（由 SQLite 导出），再叠加本浏览器 localStorage 里更新的点。只有两者都没有数据时才回落腾讯 K 线的**收盘价**，此时纵轴单位会变成"元"并在图注中说明。
 - 置顶：本地版写服务端 `backend/watchlist.txt`（多设备共享）；在线版存 localStorage（每浏览器独立）。
 
 改动列表列、排序项、配色等展示逻辑时，`frontend/` 与 `pages/` 两边都要改。
+
+### 更新在线版的历史数据
+
+```bash
+cd go && go run ./cmd/export      # backend/data/premium.db → pages/data/daily.json
+```
+
+导出文件只包含当前跟踪的 ETF，格式与 `/api/daily/{code}` 一致。提交并推送后，GitHub Actions 会自动部署到 Pages（工作流监听 `master` 分支的 `pages/**` 改动）。
+
+服务器也内置了同样的导出：启动时、以及每天收盘落盘快照后都会重写该文件（用 `-pages-daily ""` 可关闭），因此本地跑着服务的话，只要定期提交推送即可。
 
 ## 开发
 

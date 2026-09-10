@@ -16,13 +16,14 @@ import (
 
 // Config 持有服务运行所需的全部参数。
 type Config struct {
-	Addr          string        // HTTP 监听地址，如 ":8000"
-	DataDir       string        // 运行数据目录，存放 history.json 与 premium.db
-	WatchlistFile string        // 置顶 ETF 代码文件（每行一个 code）
-	FeesFile      string        // ETF 费率 JSON 文件
-	FrontendDir   string        // 前端静态文件目录
-	PollInterval  time.Duration // 后台轮询上游数据的间隔
-	FetchTimeout  time.Duration // 单次上游抓取的超时
+	Addr           string        // HTTP 监听地址，如 ":8000"
+	DataDir        string        // 运行数据目录，存放 history.json 与 premium.db
+	WatchlistFile  string        // 置顶 ETF 代码文件（每行一个 code）
+	FeesFile       string        // ETF 费率 JSON 文件
+	FrontendDir    string        // 前端静态文件目录
+	PagesDailyFile string        // 在线版静态日线数据输出路径（空字符串表示不导出）
+	PollInterval   time.Duration // 后台轮询上游数据的间隔
+	FetchTimeout   time.Duration // 单次上游抓取的超时
 }
 
 // Parse 解析命令行 flag 并返回配置。
@@ -40,6 +41,7 @@ func Parse() (*Config, error) {
 	fs.StringVar(&cfg.WatchlistFile, "watchlist", "backend/watchlist.txt", "置顶 ETF 代码文件（默认相对仓库根）")
 	fs.StringVar(&cfg.FeesFile, "fees", "backend/etf_fees.json", "ETF 费率 JSON 文件（默认相对仓库根）")
 	fs.StringVar(&cfg.FrontendDir, "frontend", "frontend", "前端静态文件目录（默认相对仓库根）")
+	fs.StringVar(&cfg.PagesDailyFile, "pages-daily", "pages/data/daily.json", "在线版静态日线数据输出路径（空字符串表示不导出）")
 	if err := fs.Parse(os.Args[1:]); err != nil {
 		return nil, err
 	}
@@ -69,6 +71,9 @@ func Parse() (*Config, error) {
 		}
 		if !set["frontend"] {
 			cfg.FrontendDir = filepath.Join(root, cfg.FrontendDir)
+		}
+		if !set["pages-daily"] && cfg.PagesDailyFile != "" {
+			cfg.PagesDailyFile = filepath.Join(root, cfg.PagesDailyFile)
 		}
 	}
 	return cfg, nil
