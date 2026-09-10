@@ -80,8 +80,16 @@ main{flex:1;min-height:0;padding:12px 16px;overflow:hidden}
 .chart-body{flex:1;min-height:0;position:relative}
 .chart-body canvas{width:100%!important;height:100%!important}
 footer{padding:8px 16px;border-top:1px solid var(--border);font-size:.7rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0}
-@media(max-width:900px){.columns{flex-direction:column}.chart-panel{flex:none;min-height:250px}.li-manager,.lh-manager{display:none}}
-@media(max-width:768px){.li-price,.lh-price{display:none}}
+/* 手机端：解除"锁死一屏"，改为整页自然纵向滚动，列表不再被限高 */
+@media(max-width:900px){
+body{position:static;overflow:visible;height:auto;min-height:100%}
+main{overflow:visible;height:auto;padding:10px 12px}
+.columns{flex-direction:column;height:auto}
+.list-panel{flex:none;width:100%}
+.list{overflow-y:visible;max-height:none}
+.chart-panel{flex:none;width:100%;min-height:300px}
+.li-manager,.lh-manager{display:none}
+}
 /* 列对齐：表头与数据行共用同一套 flex 基准（仅靠 min-width 会被内容撑宽而错位） */
 .lh-star,.li-star{flex:0 1 28px;min-width:0}
 .lh-code,.li-code{flex:0 1 56px;min-width:0}
@@ -95,6 +103,21 @@ footer{padding:8px 16px;border-top:1px solid var(--border);font-size:.7rem;color
 .lh-amount,.li-amount{flex:0 1 86px;min-width:0}
 .lh-scale,.li-scale{flex:0 1 72px;min-width:0}
 .list-header>span,.list-item>span{white-space:nowrap;overflow:hidden}
+/* 手机端：裁掉次要列 + 折叠表头，否则 9 列挤进 358px 后关键数字全被截断。
+   必须放在上面那组 flex 基准之后，否则列宽会被基础值覆盖。 */
+@media(max-width:768px){
+header{flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px}
+.header-left,.header-right{justify-content:space-between}
+.subtitle{display:none}
+.li-manager,.lh-manager,.li-price,.lh-price,.li-fee,.lh-fee,.li-amount,.lh-amount,.li-scale,.lh-scale{display:none}
+.list-header,.list-item{gap:6px;padding-left:10px;padding-right:10px}
+.lh-star,.li-star{flex:0 0 22px;min-width:0}
+.lh-code,.li-code{flex:0 0 52px;min-width:0}
+.lh-name,.li-name{flex:1 1 auto;min-width:0}
+.lh-change,.li-change{flex:0 0 58px;min-width:0}
+.lh-premium,.li-premium{flex:0 0 68px;min-width:0}
+.lh-label,.li-label{flex:0 0 52px;min-width:0}
+}
 </style>
 </head>
 <body>

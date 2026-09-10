@@ -617,10 +617,26 @@ footer {
     text-align: center;
     padding: 14px;
   }
-.li-price,
-.lh-price {
-  display: none;
-}
+  .li-manager, .lh-manager,
+  .li-price,   .lh-price,
+  .li-fee,     .lh-fee,
+  .li-amount,  .lh-amount,
+  .li-scale,   .lh-scale {
+    display: none;
+  }
+  /* 手机上只保留 代码/名称/涨跌/溢价率/状态，并压缩间距，保证关键数字读得出来 */
+  .list-header,
+  .list-item {
+    gap: 6px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .lh-star,    .li-star    { flex: 0 0 22px; }
+  .lh-code,    .li-code    { flex: 0 0 52px; }
+  .lh-name,    .li-name    { flex: 1 1 auto; }
+  .lh-change,  .li-change  { flex: 0 0 58px; }
+  .lh-premium, .li-premium { flex: 0 0 68px; }
+  .lh-label,   .li-label   { flex: 0 0 52px; }
 }
 
 /* ===== 列表列对齐（表头与数据行共用同一套 flex 基准）=====
@@ -649,4 +665,14 @@ footer {
 .list-item > span {
   white-space: nowrap;
   overflow: hidden;
+}
+
+/* 手机端列宽同理必须放在上面这组基准之后，否则会被基础 flex 值覆盖 */
+@media (max-width: 768px) {
+  .lh-star,    .li-star    { flex: 0 0 22px; }
+  .lh-code,    .li-code    { flex: 0 0 52px; }
+  .lh-name,    .li-name    { flex: 1 1 auto; }
+  .lh-change,  .li-change  { flex: 0 0 58px; }
+  .lh-premium, .li-premium { flex: 0 0 68px; }
+  .lh-label,   .li-label   { flex: 0 0 52px; }
 }
