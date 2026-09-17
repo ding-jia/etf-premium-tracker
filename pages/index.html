@@ -28,11 +28,12 @@ h1{font-size:1.1rem;font-weight:600}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 main{flex:1;min-height:0;padding:12px 16px;overflow:hidden}
 .columns{display:flex;gap:12px;height:100%}
-.list-panel{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;min-height:0}
-.list-panel>div{display:flex;flex-direction:column;flex:1;min-height:0}
-.list-panel .list{flex:1;min-height:0;overflow-y:auto}
-.chart-panel{flex:0 0 40%;min-width:0;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:8px;min-height:0;padding:12px;overflow:hidden}
-.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+/* 列表区整体滚动：两个板块按内容占高，不再各占一半（否则标普 4 行也占掉一半高度） */
+.list-panel{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
+.list-panel>div:not(.list-header){display:flex;flex-direction:column;flex:0 0 auto}
+.list-panel .list{flex:0 0 auto}
+.chart-panel{flex:0 0 32%;min-width:0;display:flex;flex-direction:column;background:var(--card);border:1px solid var(--border);border-radius:8px;min-height:0;padding:12px;overflow:hidden}
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .section-header h2{font-size:.9rem;display:flex;align-items:center;gap:8px}
 .badge{font-size:.65rem;padding:2px 6px;border-radius:4px;font-weight:600;color:#fff}
 .badge-nasdaq{background:#2563eb}
@@ -41,16 +42,17 @@ main{flex:1;min-height:0;padding:12px 16px;overflow:hidden}
 .count{font-size:.75rem;color:var(--muted)}
 .sort-select{font-size:.75rem;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:var(--card);color:var(--text)}
 .list-header,.list-item{display:flex;align-items:center;gap:10px;font-size:.75rem}
-.list-header{padding:6px 14px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);flex-shrink:0}
-.list{display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1;min-height:0}
-.list-item{padding:8px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
+/* 两个板块共用一条列表头：吸顶在列表滚动容器顶部 */
+.list-header{position:sticky;top:0;z-index:3;background:var(--bg);padding:4px 14px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);flex-shrink:0}
+.list{display:flex;flex-direction:column;gap:0;overflow:visible;flex:0 0 auto}
+.list-item{padding:8px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;line-height:1.2}
 .list-item:hover{background:var(--border)}
 .list-item.selected{background:rgba(37,99,235,.1)}
 [data-theme=bloomberg] .list-item.selected{background:rgba(255,140,0,.1)}
 .list-item.watchlist{background:rgba(255,215,0,.05)}
 /* 列宽：表头 .lh-* 与数据行 .li-* 必须共用同一套基准，否则逐列错位 */
 .lh-star,.li-star{min-width:28px;padding:4px 5px;text-align:center;flex-shrink:0}
-.li-star{cursor:pointer;font-size:1rem}
+.li-star{cursor:pointer;font-size:.95rem;line-height:1.1}
 .lh-code,.li-code{min-width:48px;flex-shrink:0}
 .li-code{font-weight:600;font-variant-numeric:tabular-nums}
 .lh-name,.li-name{min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -72,24 +74,31 @@ main{flex:1;min-height:0;padding:12px 16px;overflow:hidden}
 .list-item.loading{opacity:.4;pointer-events:none}
 .up{color:var(--red)}.down{color:var(--green)}
 .chart-note{font-size:.7rem;color:var(--muted)}
-.chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.chart-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
 .chart-header h3{font-size:.85rem}
+.chart-title-wrap{display:flex;align-items:baseline;gap:6px;min-width:0;overflow:hidden}
+.chart-title-wrap h3{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chart-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .ma-toggles{display:flex;gap:6px}
 .ma-toggle{font-size:.7rem;padding:2px 8px;border-radius:4px;cursor:pointer;background:var(--border);color:var(--muted);transition:all .15s}
 .ma-toggle.active{background:var(--blue);color:#fff}
+.chart-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:5px;cursor:pointer;font-size:.75rem;line-height:1;padding:4px 7px;display:flex;align-items:center;justify-content:center}
+.chart-btn:hover{background:var(--border);color:var(--text)}
+#chartClose{display:none}
+.chart-vertical{display:none;font-size:.7rem;color:var(--muted);writing-mode:vertical-rl;letter-spacing:2px}
+/* 图表收起：只留一条细栏，表格拿回全部宽度 */
+.columns.chart-collapsed .chart-panel{flex:0 0 44px;padding:8px 6px;align-items:center}
+.columns.chart-collapsed .chart-title-wrap,
+.columns.chart-collapsed .ma-toggles,
+.columns.chart-collapsed .chart-body{display:none}
+.columns.chart-collapsed .chart-header{flex-direction:column;margin-bottom:0;flex:1;justify-content:center;gap:10px}
+.columns.chart-collapsed .chart-actions{flex-direction:column;gap:8px}
+.columns.chart-collapsed .chart-vertical{display:block}
 .chart-body{flex:1;min-height:0;position:relative}
 .chart-body canvas{width:100%!important;height:100%!important}
 footer{padding:8px 16px;border-top:1px solid var(--border);font-size:.7rem;color:var(--muted);display:flex;gap:16px;flex-wrap:wrap;flex-shrink:0}
-/* 手机端：解除"锁死一屏"，改为整页自然纵向滚动，列表不再被限高 */
-@media(max-width:900px){
-body{position:static;overflow:visible;height:auto;min-height:100%}
-main{overflow:visible;height:auto;padding:10px 12px}
-.columns{flex-direction:column;height:auto}
-.list-panel{flex:none;width:100%}
-.list{overflow-y:visible;max-height:none}
-.chart-panel{flex:none;width:100%;min-height:300px}
-.li-manager,.lh-manager{display:none}
-}
+.li-break{display:none}
+/* 手机/窄屏样式统一放在文件末尾：必须位于下面这组 flex 基准之后才能覆盖列宽 */
 /* 列对齐：表头与数据行共用同一套 flex 基准（仅靠 min-width 会被内容撑宽而错位） */
 .lh-star,.li-star{flex:0 1 28px;min-width:0}
 .lh-code,.li-code{flex:0 1 56px;min-width:0}
@@ -103,20 +112,66 @@ main{overflow:visible;height:auto;padding:10px 12px}
 .lh-amount,.li-amount{flex:0 1 86px;min-width:0}
 .lh-scale,.li-scale{flex:0 1 72px;min-width:0}
 .list-header>span,.list-item>span{white-space:nowrap;overflow:hidden}
-/* 手机端：裁掉次要列 + 折叠表头，否则 9 列挤进 358px 后关键数字全被截断。
+/* 矮屏笔记本（768/800 高度）：行再压一档并收起页脚，保证 17 行一屏可见 */
+@media(min-width:901px) and (max-height:820px){
+.list-item{padding:5px 14px}
+footer{display:none}
+}
+/* 手机/窄屏（<=900px）：固定一屏 + 列表内部滚动 + 图表底部抽屉，不再做整页长滚动。
    必须放在上面那组 flex 基准之后，否则列宽会被基础值覆盖。 */
-@media(max-width:768px){
-header{flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px}
-.header-left,.header-right{justify-content:space-between}
+@media(max-width:900px){
+body{position:fixed;inset:0;height:100vh;height:100dvh;overflow:hidden}
+header{gap:6px;padding:5px 10px}
+header h1{font-size:1rem}
 .subtitle{display:none}
-.li-manager,.lh-manager,.li-price,.lh-price,.li-fee,.lh-fee,.li-amount,.lh-amount,.li-scale,.lh-scale{display:none}
-.list-header,.list-item{gap:6px;padding-left:10px;padding-right:10px}
-.lh-star,.li-star{flex:0 0 22px;min-width:0}
-.lh-code,.li-code{flex:0 0 52px;min-width:0}
-.lh-name,.li-name{flex:1 1 auto;min-width:0}
-.lh-change,.li-change{flex:0 0 58px;min-width:0}
-.lh-premium,.li-premium{flex:0 0 68px;min-width:0}
-.lh-label,.li-label{flex:0 0 52px;min-width:0}
+main{flex:1;min-height:0;overflow:hidden;padding:5px 8px}
+.columns{flex-direction:column;height:100%;gap:0}
+.list-panel{flex:1;min-height:0;gap:2px}
+.list-header{display:none}
+/* 板块标题吸顶，滚动时始终知道在看哪个板块 */
+.section-header{position:sticky;top:0;z-index:3;margin-bottom:2px;background:var(--bg)}
+.section-header h2{font-size:.82rem}
+.count{font-size:.7rem}
+/* 排序控件字号必须 >=16px：iOS Safari 对更小字号的下拉会在聚焦时放大整页 */
+.sort-select{font-size:16px;height:22px;padding:0 4px}
+/* 行改两行卡片：一行 代码+名称+溢价率，二行 状态+涨跌+费率+成交额+规模 */
+.list-item{position:relative;flex-wrap:wrap;column-gap:8px;row-gap:0;padding:4px 12px;font-size:.8rem;line-height:1.15}
+.li-break{display:block;flex:0 0 100%;height:0}
+/* 星标字形保持小，但用伪元素撑出 >=44px 的点击热区（不占布局高度） */
+.li-star{order:1;position:relative;flex:0 0 26px;padding:0;font-size:1.05rem}
+.li-star::after{content:"";position:absolute;top:-12px;bottom:-12px;left:-8px;right:-8px}
+.li-code{order:2;flex:0 0 auto}
+.li-name{order:3;flex:1 1 60px;font-size:.82rem}
+.li-premium{order:4;flex:0 0 auto;margin-left:auto;font-size:.95rem}
+.li-label{order:5;flex:0 0 auto;font-size:.68rem}
+.li-break{order:6}
+.li-change{order:7;flex:0 0 auto;font-size:.75rem}
+.li-manager{order:8;flex:0 1 auto;min-width:0;font-size:.7rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.li-fee{order:9;flex:0 0 auto;font-size:.7rem}
+.li-amount{order:10;flex:0 0 auto;font-size:.7rem}
+.li-scale{order:11;flex:0 0 auto;font-size:.7rem}
+.li-price{display:none}
+footer{padding:2px 10px;font-size:.6rem;gap:10px}
+footer span:nth-child(1),footer span:nth-child(2){display:none}
+/* 图表改成底部抽屉：点行弹出，列表位置不动 */
+.chart-panel{position:fixed;left:0;right:0;bottom:0;z-index:41;width:auto;height:46vh;height:46dvh;min-height:0;max-height:70vh;
+border-radius:14px 14px 0 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+transform:translateY(105%);transition:transform .25s ease;box-shadow:0 -10px 30px rgba(0,0,0,.22)}
+.chart-panel.open{transform:translateY(0)}
+#chartToggle{display:none}
+#chartClose{display:flex}
+}
+/* 超小屏：再砍掉次要列 */
+@media(max-width:380px){
+header h1{font-size:1rem}
+.li-manager,.li-fee,.li-scale,.li-label{display:none}
+}
+/* 横屏手机：屏幕矮，抽屉给高一点、行再压一压 */
+@media(max-width:900px) and (max-height:520px){
+header{padding:6px 12px}
+.list-item{padding:3px 12px}
+.li-manager,.li-fee,.li-scale{display:none}
+.chart-panel{height:62dvh}
 }
 </style>
 </head>
@@ -134,20 +189,26 @@ header{flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px}
 </header>
 <main><div class="columns">
 <section class="list-panel">
-<div><div class="section-header"><h2><span class="badge badge-nasdaq">NASDAQ</span> 纳指ETF</h2><div class="section-controls"><span class="count" id="nasdaqCount">0只</span><select id="nasdaqSort" class="sort-select"><option value="premium-desc">溢价率↓</option><option value="premium-asc">溢价率↑</option><option value="fee-desc">费率↓</option><option value="fee-asc">费率↑</option><option value="amount-desc">成交额↓</option><option value="amount-asc">成交额↑</option><option value="scale-desc">规模↓</option><option value="scale-asc">规模↑</option><option value="code">代码</option><option value="name">名称</option></select></div></div>
 <div class="list-header"><span class="lh-star"></span><span class="lh-code">代码</span><span class="lh-name">名称</span><span class="lh-manager">管理人</span><span class="lh-fee">费率</span><span class="lh-price">现价</span><span class="lh-change">涨跌</span><span class="lh-premium">溢价率</span><span class="lh-label">状态</span><span class="lh-amount">成交额</span><span class="lh-scale">规模</span></div>
+<div><div class="section-header"><h2><span class="badge badge-nasdaq">NASDAQ</span> 纳指ETF</h2><div class="section-controls"><span class="count" id="nasdaqCount">0只</span><select id="nasdaqSort" class="sort-select"><option value="premium-desc">溢价率↓</option><option value="premium-asc">溢价率↑</option><option value="fee-desc">费率↓</option><option value="fee-asc">费率↑</option><option value="amount-desc">成交额↓</option><option value="amount-asc">成交额↑</option><option value="scale-desc">规模↓</option><option value="scale-asc">规模↑</option><option value="code">代码</option><option value="name">名称</option></select></div></div>
 <div class="list" id="nasdaqGrid"></div></div>
 <div><div class="section-header"><h2><span class="badge badge-sp500">S&amp;P500</span> 标普ETF</h2><div class="section-controls"><span class="count" id="sp500Count">0只</span><select id="sp500Sort" class="sort-select"><option value="premium-desc">溢价率↓</option><option value="premium-asc">溢价率↑</option><option value="fee-desc">费率↓</option><option value="fee-asc">费率↑</option><option value="amount-desc">成交额↓</option><option value="amount-asc">成交额↑</option><option value="scale-desc">规模↓</option><option value="scale-asc">规模↑</option><option value="code">代码</option><option value="name">名称</option></select></div></div>
-<div class="list-header"><span class="lh-star"></span><span class="lh-code">代码</span><span class="lh-name">名称</span><span class="lh-manager">管理人</span><span class="lh-fee">费率</span><span class="lh-price">现价</span><span class="lh-change">涨跌</span><span class="lh-premium">溢价率</span><span class="lh-label">状态</span><span class="lh-amount">成交额</span><span class="lh-scale">规模</span></div>
 <div class="list" id="sp500Grid"></div></div>
 </section>
 <section class="chart-panel">
-<div class="chart-header"><h3 id="chartTitle">标普500ETF博时 (513500)</h3><span class="chart-note" id="chartNote"></span>
-<div class="ma-toggles"><span class="ma-toggle active" data-ma="ma5">MA5</span><span class="ma-toggle active" data-ma="ma10">MA10</span><span class="ma-toggle active" data-ma="ma20">MA20</span></div></div>
+<div class="chart-header">
+<div class="chart-title-wrap"><h3 id="chartTitle">标普500ETF博时 (513500)</h3><span class="chart-note" id="chartNote"></span></div>
+<div class="chart-actions">
+<div class="ma-toggles"><span class="ma-toggle active" data-ma="ma5">MA5</span><span class="ma-toggle active" data-ma="ma10">MA10</span><span class="ma-toggle active" data-ma="ma20">MA20</span></div>
+<span class="chart-vertical">历史溢价率</span>
+<button class="chart-btn" id="chartToggle" type="button" title="收起图表" aria-label="收起或展开图表">❯</button>
+<button class="chart-btn" id="chartClose" type="button" title="关闭图表" aria-label="关闭图表">✕</button>
+</div>
+</div>
 <div class="chart-body"><canvas id="premiumChart"></canvas></div>
 </section>
 </div></main>
-<footer><span>数据来源：腾讯财经</span><span>IOPV为实时估算净值，溢价率=(现价-IOPV)/IOPV×100%</span><span>点击刷新更新数据</span></footer>
+<footer><span>数据来源：腾讯财经</span><span>IOPV为实时估算净值，溢价率=(现价-IOPV)/IOPV×100%</span><span>点击任意一行查看历史溢价率曲线</span></footer>
 <script src="script.js"></script>
 </body>
 </html>

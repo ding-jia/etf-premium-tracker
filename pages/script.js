@@ -42,16 +42,16 @@ const premiumLabel = p => {
   if(p<0)return a<=1?"正常":a<=3?"折价":a<=5?"高折价":"深度折价";
   return a<=1?"正常":a<=3?"溢价":a<=5?"高溢价":"极高";
 };
-// 列表出现竖向滚动条时，数据行的可用宽度比表头少一个滚动条宽度；
+// 列表整体滚动（.list-panel）时，吸顶表头的可用宽度比数据行少一个滚动条宽度；
 // 把同样的宽度补给表头右内边距，表头与数据行才能逐列对齐。
-function syncHeaderGutter(listEl) {
-  if(!listEl) return;
-  const header=listEl.previousElementSibling;
-  if(!header||!header.classList.contains("list-header")) return;
+function syncHeaderGutter() {
+  const panel=document.querySelector(".list-panel");
+  const header=panel&&panel.querySelector(".list-header");
+  if(!panel||!header||!header.offsetParent) return;   // 手机端表头隐藏时跳过
   if(header.dataset.basePadRight===undefined){
     header.dataset.basePadRight=String(parseFloat(getComputedStyle(header).paddingRight)||0);
   }
-  const scrollbar=listEl.offsetWidth-listEl.clientWidth;
+  const scrollbar=panel.offsetWidth-panel.clientWidth;
   header.style.paddingRight=(Number(header.dataset.basePadRight)+scrollbar)+"px";
 }
 const fmtTime = d => {
@@ -168,18 +168,19 @@ function renderGrid(data, gridId, sortId) {
 <span class="li-manager">${esc(e.manager)}</span>
 <span class="li-fee">${fee!=null?fee.toFixed(2)+"%":"--"}</span>
 <span class="li-price">${e.price??"--"}</span>
+<span class="li-break"></span>
 <span class="li-change ${e.change_pct>=0?"up":"down"}">${e.change_pct>=0?"+":""}${e.change_pct.toFixed(2)}%</span>
 <span class="li-premium">${e.premium!=null?(e.premium>=0?"+":"")+e.premium.toFixed(2)+"%":"N/A"}</span>
 <span class="li-label">${premiumLabel(e.premium)}</span>
 <span class="li-amount">${fmtAmt(e.amount)}</span><span class="li-scale">${fmtScale(e.fund_scale)}</span></div>`;
   }).join("");
-  syncHeaderGutter(grid);
+  syncHeaderGutter();
   // 事件委托：star点击 → 切换置顶，其他区域点击 → 选中看图表
   grid.onclick = function(e) {
     var star = e.target.closest(".li-star");
     if (star) { toggleWL(star.dataset.code); return; }
     var item = e.target.closest(".list-item");
-    if (item && item.dataset.code) select(item.dataset.code);
+    if (item && item.dataset.code) select(item.dataset.code, true);
   };
 }
 
@@ -228,7 +229,7 @@ function toggleWL(code) {
 }
 
 // ===== 图表 =====
-async function select(code) {
+async function select(code, fromClick=false) {
   const token = ++selectToken;
   const all=[...D.nasdaq,...D.sp500], etf=all.find(e=>e.code===code);
   $("chartTitle").textContent=etf?`${etf.name} (${code})`:code;
@@ -247,6 +248,8 @@ async function select(code) {
   $("chartNote").textContent = mode==="price"
     ? "（暂无溢价率历史，先显示收盘价；每次点刷新会记录当天溢价率）"
     : "";
+  // 手机端：点行后弹出底部图表抽屉（刷新时恢复选中不弹）
+  if(fromClick&&isMobile()) openSheet();
   // 延迟一帧确保DOM已更新，canvas尺寸已确定
   requestAnimationFrame(()=>drawChart(lastRec));
 }
@@ -271,6 +274,52 @@ function drawChart(rec) {
   chart=new Chart(ctx,{type:"line",data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,animation:{duration:300},interaction:{intersect:false,mode:"index"},plugins:{legend:{display:false},tooltip:{backgroundColor:isBB?"#1a1a1a":"#fff",titleColor:isBB?"#c8c8c8":"#1f2937",bodyColor:lc,borderColor:isBB?"#333":"#e2e6ea",borderWidth:1,padding:10,callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y!=null?c.parsed.y.toFixed(2)+unit:"--"}`}}},scales:{x:{display:true,grid:{display:false},ticks:{color:tc,font:{size:10},maxTicksLimit:10,autoSkip:true}},y:{display:true,grid:{color:gc},ticks:{color:tc,font:{size:10},callback:v=>v.toFixed(isPrice?2:1)+unit}}}}});
 }
 
+// ===== 图表面板：桌面端可收起、手机端为底部抽屉 =====
+let chartCollapsed=false, sheetOpen=false;
+const isMobile=()=>window.matchMedia("(max-width:900px)").matches;
+
+function applyChartUI(){
+  const columns=document.querySelector(".columns"), panel=document.querySelector(".chart-panel");
+  const toggle=$("chartToggle");
+  if(!columns||!panel) return;
+  // 用户没手动设置过偏好时，屏幕矮（<=820px）默认收起图表，优先保证全部行一屏可见
+  if(!isMobile()&&localStorage.getItem("chartCollapsed")===null){
+    chartCollapsed=window.matchMedia("(max-height:820px)").matches;
+  }
+  if(isMobile()){
+    columns.classList.remove("chart-collapsed");
+    panel.classList.toggle("open",sheetOpen);
+    return;
+  }
+  sheetOpen=false;
+  panel.classList.remove("open");
+  columns.classList.toggle("chart-collapsed",chartCollapsed);
+  if(toggle){
+    toggle.textContent=chartCollapsed?"❮":"❯";
+    toggle.title=chartCollapsed?"展开图表":"收起图表";
+  }
+}
+
+function openSheet(){
+  sheetOpen=true;
+  applyChartUI();
+  setTimeout(()=>{ if(chart) chart.resize(); },320);   // 抽屉动画结束后让 Chart.js 重算尺寸
+}
+
+function closeSheet(){
+  sheetOpen=false;
+  applyChartUI();
+}
+
+function toggleChartPanel(){
+  if(isMobile()){ closeSheet(); return; }
+  chartCollapsed=!chartCollapsed;
+  localStorage.setItem("chartCollapsed",chartCollapsed?"1":"0");
+  applyChartUI();
+  // 从收起状态展开时 canvas 需要重新渲染
+  if(!chartCollapsed&&lastRec.length) requestAnimationFrame(()=>drawChart(lastRec));
+}
+
 // ===== 主题 =====
 function applyTheme() {
   document.documentElement.setAttribute("data-theme",theme);
@@ -283,9 +332,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   WL=loadWL(); applyTheme();
   $("themeToggle").onclick=()=>{theme=theme==="bloomberg"?"light":"bloomberg";localStorage.setItem("theme",theme);applyTheme()};
   $("refreshBtn").onclick=refresh;
+  $("chartToggle").onclick=toggleChartPanel;
+  $("chartClose").onclick=closeSheet;
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&sheetOpen)closeSheet()});
+  applyChartUI();
   $("nasdaqSort").onchange=renderAll;
   $("sp500Sort").onchange=renderAll;
-  window.addEventListener("resize",()=>{["nasdaqGrid","sp500Grid"].forEach(id=>syncHeaderGutter($(id)))});
+  window.addEventListener("resize",()=>{syncHeaderGutter();applyChartUI()});
   document.querySelectorAll(".ma-toggle").forEach(el=>el.onclick=()=>{ma[el.dataset.ma]=!ma[el.dataset.ma];el.classList.toggle("active");if(lastRec.length)drawChart(lastRec)});
   // 骨架屏
   ["nasdaqGrid","sp500Grid"].forEach(id=>{$(id).innerHTML=Array(7).fill(0).map(()=>'<div class="list-item loading"><span class="li-star">☆</span><span class="li-code">888888</span><span class="li-name">加载中加载中</span><span class="li-manager">加载中</span><span class="li-fee">0.00%</span><span class="li-price">88.888</span><span class="li-change">+88.88%</span><span class="li-premium">+88.88%</span><span class="li-label">加载</span><span class="li-amount">加载</span><span class="li-scale">加载</span></div>').join("")});
