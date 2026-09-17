@@ -311,6 +311,45 @@ function closeSheet(){
   applyChartUI();
 }
 
+// 手机端抽屉：按住顶部抓手/标题栏下滑关闭（跟手拖动，超过阈值才关）
+function initSheetDrag(){
+  const panel=document.querySelector(".chart-panel");
+  const grab=document.querySelector(".sheet-grab");
+  const header=panel&&panel.querySelector(".chart-header");
+  if(!panel) return;
+  const handles=[grab,header].filter(Boolean);
+  let startY=null, delta=0;
+
+  const onStart=e=>{
+    if(!isMobile()||!sheetOpen||e.touches.length!==1) return;
+    startY=e.touches[0].clientY;
+    delta=0;
+    panel.style.transition="none";     // 拖拽期间关掉过渡，保证跟手
+  };
+  const onMove=e=>{
+    if(startY===null) return;
+    delta=e.touches[0].clientY-startY;
+    if(delta<0) delta=Math.max(delta/3,-24);   // 上滑给阻尼，别把抽屉拖出屏幕
+    panel.style.transform=`translateY(${Math.max(delta,0)}px)`;
+    if(delta>0&&e.cancelable) e.preventDefault();   // 跟手期间不要同时滚动列表
+  };
+  const onEnd=()=>{
+    if(startY===null) return;
+    const shouldClose=delta>70;
+    startY=null;
+    panel.style.transition="";
+    panel.style.transform="";          // 交回 CSS（.open 决定最终位置）
+    if(shouldClose) closeSheet();
+  };
+
+  handles.forEach(el=>{
+    el.addEventListener("touchstart",onStart,{passive:true});
+    el.addEventListener("touchmove",onMove,{passive:false});
+    el.addEventListener("touchend",onEnd);
+    el.addEventListener("touchcancel",onEnd);
+  });
+}
+
 function toggleChartPanel(){
   if(isMobile()){ closeSheet(); return; }
   chartCollapsed=!chartCollapsed;
@@ -335,6 +374,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   $("chartToggle").onclick=toggleChartPanel;
   $("chartClose").onclick=closeSheet;
   document.addEventListener("keydown",e=>{if(e.key==="Escape"&&sheetOpen)closeSheet()});
+  initSheetDrag();
   applyChartUI();
   $("nasdaqSort").onchange=renderAll;
   $("sp500Sort").onchange=renderAll;
