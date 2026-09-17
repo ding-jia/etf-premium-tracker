@@ -122,7 +122,8 @@ async function fetchDaily(code) {
 const loadWL = () => { try{return new Set(JSON.parse(localStorage.getItem("etf_wl")||"[]"))}catch(e){return new Set()} };
 const saveWL = () => localStorage.setItem("etf_wl",JSON.stringify([...WL]));
 const loadSnap = code => { try{return JSON.parse(localStorage.getItem("etf_h_"+code)||"[]")}catch(e){return []} };
-// 后端导出的静态日线数据（go run ./cmd/export 生成，随 Pages 一起部署）
+// 静态日线数据：由 .github/workflows/update-data.yml 调 scripts/update_daily.py
+// 在每个交易日收盘后并入当日溢价率，随 Pages 一起部署
 const DAILY_URL = "data/daily.json";
 let DAILY = null;
 async function loadDaily(){
@@ -235,7 +236,7 @@ async function select(code) {
   const row=document.querySelector(`.list-item[data-code="${code}"]`);
   if(row) row.classList.add("selected");
   // 图表只表达溢价率。数据源优先级：
-  //   1) data/daily.json —— 后端导出的完整历史（随仓库部署，任何人打开都能看到）
+  //   1) data/daily.json —— 随仓库部署的完整历史（任何人打开都能看到）
   //   2) localStorage    —— 本浏览器刷新时攒下的溢价率（可能比导出文件更新）
   //   3) 腾讯 K 线收盘价 —— 兜底；此时必须换掉数据集名与坐标轴单位（元），
   //                        不能把价格当"溢价率"画

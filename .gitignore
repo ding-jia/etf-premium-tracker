@@ -1,12 +1,3 @@
 __pycache__/
 *.pyc
-backend/data/
-go/server
-go/server.exe
-
-# Go 版以默认路径运行时的残留数据目录（正确数据在 backend/data/）
-go/backend/
-
-# Air 热重载构建产物
-go/tmp/
 tmp/

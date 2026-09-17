@@ -1,7 +1,9 @@
 name: Update Daily Data
 
-# 静态站自己写不回仓库，所以用定时任务在 GitHub 的 runner 上抓行情、
+# 在线版是纯静态站、写不回仓库，所以用定时任务在 GitHub 的 runner 上抓行情、
 # 把当日溢价率写进 pages/data/daily.json，提交后再显式触发 Pages 部署。
+#
+# 只依赖 Python 3 标准库（scripts/update_daily.py），不需要 Go 工具链。
 #
 # 注意：用 GITHUB_TOKEN 推的提交不会触发其它 workflow（GitHub 的防递归机制），
 # 因此下面必须显式 `gh workflow run "Deploy Pages"`，否则线上不会更新。
@@ -40,20 +42,14 @@ jobs:
         with:
           ref: master
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: go/go.mod
-          cache-dependency-path: go/go.sum
-
       - name: 抓取当日溢价率
-        working-directory: go
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            go run ./cmd/snapshot -dry-run
+            python3 scripts/update_daily.py --dry-run
           elif [ "${{ inputs.force }}" = "true" ]; then
-            go run ./cmd/snapshot -force
+            python3 scripts/update_daily.py --force
           else
-            go run ./cmd/snapshot
+            python3 scripts/update_daily.py
           fi
 
       - name: 提交数据文件

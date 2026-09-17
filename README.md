@@ -1,219 +1,82 @@
-# ETF 溢价率监控
+# ETF 溢价率监控 · 在线版
 
-A股美股 ETF 溢价率实时监控面板。跟踪沪深两市上市的纳斯达克 100 与标普 500 ETF，实时展示溢价率、费率、成交额、基金规模，并提供每日溢价率历史图表。
+A 股美股 ETF 溢价率监控的**纯静态**页面（GitHub Pages）。无后端、无构建步骤：浏览器直连腾讯财经取行情，图表历史来自仓库里的 `pages/data/daily.json`。
 
-纯 Go 实现：单二进制、零前端构建、无 cgo 依赖（SQLite 为纯 Go 驱动）。
+线上地址：https://ding-jia.github.io/etf-premium-tracker/
 
-## 功能特性
+带后端的本地版（Go + SQLite 实时面板 + `/api/*`）已拆到独立目录 `../etf-premium-tracker-go/`；本仓库只负责在线展示。
 
-- 📊 实时行情：后台 **30 分钟**轮询腾讯财经接口，内存缓存直接响应前端
-- 🏷️ 溢价率分级：正常 / 溢价 / 高溢价 / 极高（深度折价）四级配色
-- ⭐ 置顶关注：点击星标切换关注，置顶项始终排在板块最前
-- 📈 历史图表：Chart.js 每日溢价率折线 + MA5/MA10/MA20 均线，支持 Bloomberg 深色主题
-- 💰 费率与规模：展示综合费率、成交额（亿/万）、基金规模（亿）
-- 📁 双持久化：日内历史存 JSON，每日快照存 SQLite（收盘后自动落盘）
+## 功能
 
-## 快速开始
+- 跟踪 17 只标的（13 只纳指 + 4 只标普），溢价率四级配色、费率/成交额/规模列、10 项排序
+- 点击列表行看历史溢价率折线（MA5/MA10/MA20 可切换），支持 Bloomberg 深色主题
+- 置顶关注（localStorage，每浏览器独立）、手机端自适应（<768px 裁掉次要列）
 
-### 前置要求
-
-- Go 1.26+（`go.mod` 声明 `go 1.26.5`）
-
-### 启动
+## 本地预览
 
 ```bash
-# 方式一：启动脚本（推荐，路径自动指向仓库根）
-./start.sh            # Windows 下用 start.bat 或 start.ps1
-
-# 方式二：直接运行（需在 go/ 目录内，路径相对 CWD）
-cd go && go run ./cmd/server
-
-# 方式三：编译后从任意目录运行（配合 flag 指定路径）
-cd go && go build -o server.exe ./cmd/server
+python3 -m http.server 8124 -d pages     # 打开 http://localhost:8124/
 ```
 
-启动后访问 **http://localhost:8000**
+必须用 HTTP 服务打开：`file://` 下 `fetch('data/daily.json')` 会被 CORS 拦掉，图表会静默回落到收盘价。
 
-### 命令行参数
+## 数据来源
 
-| Flag | 默认值 | 说明 |
-|---|---|---|
-| `-addr` | `:8000` | HTTP 监听地址 |
-| `-poll` | `30m` | 后台轮询上游数据的间隔 |
-| `-timeout` | `10s` | 单次上游抓取超时 |
-| `-data-dir` | `backend/data` | 运行数据目录（history.json / premium.db） |
-| `-watchlist` | `backend/watchlist.txt` | 置顶 ETF 代码文件 |
-| `-fees` | `backend/etf_fees.json` | ETF 费率 JSON 文件 |
-| `-frontend` | `frontend` | 前端静态文件目录 |
-| `-pages-daily` | `pages/data/daily.json` | 在线版静态日线数据输出路径（空字符串 = 不导出） |
+| 内容 | 来源 |
+|---|---|
+| 实时行情 | `<script>` 注入 `https://qt.gtimg.cn`（点刷新按钮时抓一次） |
+| 图表历史 | `pages/data/daily.json`（随仓库部署）+ localStorage 里本机刷新记录，按日期合并 |
+| 图表兜底 | 某只 ETF 一条溢价率历史都没有时，回落腾讯日 K 的**收盘价**，纵轴单位改「元」并加图注 |
+| 置顶 | localStorage |
 
-示例：`go run ./cmd/server -addr :9000 -poll 1m`
+溢价率直接取腾讯字段 `[77]`；`IOPV == 0` 时为 null（前端显示 N/A，图表跳过该点，均线只对有值的点求均值）。
 
-### 开发：热重载（Air）
+## 每日数据更新（无人值守）
+
+`.github/workflows/update-data.yml` 在每交易日收盘后（北京时间 15:10 / 15:40 / 16:10，跑三次防抖动）执行 `scripts/update_daily.py`：
+
+1. 抓腾讯行情 → 只取有溢价率的 ETF → 并入 `pages/data/daily.json`（同一天替换，反复运行幂等）
+2. 文件有变化才提交（`chore: 更新在线版日线数据（YYYY-MM-DD）`）
+3. 显式 `gh workflow run "Deploy Pages"` —— 用 `GITHUB_TOKEN` 推的提交不会触发其它 workflow
+
+脚本只用 Python 3 标准库，不需要 Go 工具链。手动补数据 / 验证链路：Actions → **Update Daily Data** → Run workflow，可勾 `force`（未收盘也写，写入盘中值）或 `dry_run`（只抓取不写）。
+
+本地也可以直接跑：
 
 ```bash
-cd go && air   # 监听 .go 文件变更，自动构建并重启服务
+python3 scripts/update_daily.py --dry-run               # 只抓取并打印
+python3 scripts/update_daily.py --data /tmp/daily.json  # 写到别处试验
 ```
 
-- 需先安装 Air：`go install github.com/air-verse/air@latest`
-- 配置在 `go/.air.toml`：构建产物输出到 `go/tmp/`（已 gitignore），参数与 start.sh 对齐
-- 前端是纯静态文件，改 HTML/CSS/JS 无需重启后端，直接刷新浏览器
+> 已知行为：GitHub 免费 runner 的 `schedule` 常有数小时漂移（实测多在北京时间 20:00-23:00 才跑），数据日期取运行时日期，所以只是线上更新比收盘晚几小时，不影响正确性。
 
-## API 端点
-
-| 路径 | 方法 | 说明 |
-|---|---|---|
-| `/api/etfs` | GET | 全部 ETF 行情（按板块分组 + 市场状态） |
-| `/api/refresh` | POST | 手动触发一次抓取，失败返回 502 |
-| `/api/watchlist` | GET | 置顶代码列表 |
-| `/api/watchlist/toggle/{code}` | POST | 切换置顶状态 |
-| `/api/fees` | GET | 费率数据（etf_fees.json 原样） |
-| `/api/history/{code}` | GET | 日内溢价率历史 `[[ts, premium], ...]` |
-| `/api/daily/{code}` | GET | 每日溢价率历史 `[[date, premium], ...]` |
-| `/{path}` | GET | 静态文件，缺失回退 `index.html` |
-
-### `/api/etfs` 响应示例
-
-```json
-{
-  "nasdaq": [
-    {
-      "code": "513100",
-      "name": "纳指ETF国泰",
-      "category": "nasdaq",
-      "manager": "国泰基金",
-      "exchange": "SH",
-      "price": 2.112,
-      "iopv": 1.914,
-      "nav": 1.9024,
-      "premium": 10.34,
-      "change_pct": 3.48,
-      "volume": 168780400,
-      "amount": 356440000.0,
-      "prev_close": 2.041,
-      "fee": { "mgmt": 0.6, "custodian": 0.2, "total": 0.8 },
-      "fund_scale": 12.3
-    }
-  ],
-  "sp500": [],
-  "market_status": "open",
-  "update_time": "2026-08-03 09:35:34",
-  "total_count": 17
-}
-```
-
-> 缺失字段以 `null` 表示（如 IOPV 为 0 时 `premium` 为 `null`）。
-
-## 数据来源与字段
-
-- **上游**：腾讯财经接口 `http://qt.gtimg.cn/q=sh513100,sz159941,...`（GBK 编码，`~` 分隔）
-- **溢价率**：直接取腾讯字段 [77]；IOPV（字段 78）为 0 时置 `null`
-- **换算**：成交量 = 手 × 100；成交额 = 万元 × 10000；基金规模 = NAV × 总份额 / 1e8
-- **交易时段**：工作日 09:30-11:30 / 13:00-15:00（`internal/market` 判断）
-- **每日快照**：收盘后（15:00 之后）每个交易日保存一次至 SQLite；日内历史每只 ETF 保留最近 480 条（约 10 天，30 分钟间隔）
-
-## 项目结构
+## 目录结构
 
 ```
-etf-premium-tracker/
-├── start.sh / start.bat / start.ps1   # 启动脚本
-├── go/                       # Go 服务（本仓库主体）
-│   ├── cmd/server/main.go    # 入口：配置 → 初始化 → 轮询 + HTTP
-│   └── internal/
-│       ├── config/           # 命令行配置解析
-│       ├── etfs/             # 17 只 ETF 静态元数据表
-│       ├── model/            # DTO（与前端契约严格对齐）
-│       ├── quote/            # 腾讯行情客户端：URL 构建 / GBK 解码 / 字段解析
-│       ├── market/           # 交易时间判断
-│       ├── history/          # 日内历史（内存 + JSON，480 条截断）
-│       ├── store/            # SQLite 仓储（modernc.org/sqlite，纯 Go）
-│       ├── watchlist/        # 置顶文件读写（原子替换）
-│       ├── fees/             # 费率加载
-│       └── server/           # 缓存、后台轮询、HTTP 路由、CORS、静态文件
-├── frontend/                 # 前端 SPA（原生 JS + Chart.js CDN，无构建）
-├── backend/                  # 数据文件：watchlist.txt / etf_fees.json / data/
-│                             #   （旧 Python 版源码已删除，此目录只放运行数据与配置）
-├── pages/                    # GitHub Pages 在线版（纯静态、无后端，浏览器直连腾讯接口）
-│   └── data/daily.json       # 由后端数据库导出的每日溢价率历史（提交进仓库，随站点发布）
-└── plan.md                   # Go 重写计划与决策记录
+pages/
+  index.html          单文件页面（内联样式 + 手机端媒体查询）
+  script.js           全部前端逻辑：META/FEES 元数据、取行情、渲染、图表、主题
+  data/daily.json     每日溢价率历史 {"513100": [["2026-05-19", 2.5], ...]}
+scripts/
+  update_daily.py     收盘后把当日溢价率并入 daily.json（仅标准库）
+.github/workflows/
+  deploy-pages.yml    部署（push 到 master 且改动 pages/**）
+  update-data.yml     每个交易日收盘后更新数据并触发部署
 ```
 
-### 在线版与本地版的差异
+## 改动的注意点
 
-`pages/` 是部署到 GitHub Pages 的纯静态版本，没有后端，因此**展示层一致、数据来源不同**：
+- **ETF 元数据只有一份**：`pages/script.js` 的 `META`（代码/名称/板块/管理人/交易所）与 `FEES`（综合费率）。新增 ETF 只改这一个文件；`scripts/update_daily.py` 会自己从 `META` 解析代码表。
+- 展示层（列、排序项、配色、格式化）全在 `pages/`，改动后 `node --check pages/script.js`，再本地起 HTTP 服务实际点一遍。
+- `pages/data/daily.json` 由脚本写入（临时文件 + rename 原子替换），手工编辑请保持紧凑 JSON、key 排序、日期升序，避免出现无意义的整行 diff。
 
-- 图表：两端画的是同一份每日**溢价率**。本地版直接读 SQLite；在线版读随仓库发布的 `pages/data/daily.json`（由 SQLite 导出），再叠加本浏览器 localStorage 里更新的点。只有两者都没有数据时才回落腾讯 K 线的**收盘价**，此时纵轴单位会变成"元"并在图注中说明。
-- 置顶：本地版写服务端 `backend/watchlist.txt`（多设备共享）；在线版存 localStorage（每浏览器独立）。
+## 已知局限
 
-改动列表列、排序项、配色等展示逻辑时，`frontend/` 与 `pages/` 两边都要改。
+- **无交易日历**：工作日节假日收盘后仍会写入一条点（沿用上一交易日收盘值），判断逻辑目前只有「非周末 + 15:00 之后」。要彻底解决得用上游自己的交易日信息（如日 K 最后一根 bar 的日期）做校验。
+- 每日数据依赖 GitHub Actions 的 `schedule`，实测有数小时漂移。
+- Chart.js 走 jsdelivr CDN，无本地兜底；CDN 不可用时页面没有图表。
+- localStorage 里的点只有本机刷新过才有，跨设备只能等 `daily.json` 更新。
 
-### 更新在线版的历史数据
+## 历史文档
 
-```bash
-cd go && go run ./cmd/export      # backend/data/premium.db → pages/data/daily.json
-```
-
-导出文件只包含当前跟踪的 ETF，格式与 `/api/daily/{code}` 一致。提交并推送后，GitHub Actions 会自动部署到 Pages（工作流监听 `master` 分支的 `pages/**` 改动）。
-
-服务器也内置了同样的导出：启动时、以及每天收盘落盘快照后都会重写该文件（用 `-pages-daily ""` 可关闭），因此本地跑着服务的话，只要定期提交推送即可。
-
-### 无人值守更新（GitHub Actions）
-
-仓库里的 `.github/workflows/update-data.yml` 每交易日收盘后（北京时间 15:10 / 15:40 / 16:10）在 GitHub 的 runner 上抓一次行情，把当日溢价率写进 `pages/data/daily.json` 并提交，然后显式触发 Pages 部署——**不需要本地开机**。
-
-```bash
-# 手动验证上游连通性（只抓取不写入）
-gh workflow run "Update Daily Data" -f dry_run=true
-```
-
-命令本身也能本地运行，用于手动补数据：
-
-```bash
-cd go && go run ./cmd/snapshot -dry-run   # 只抓取并打印
-cd go && go run ./cmd/snapshot -force     # 未到收盘也写入（写入的是盘中值）
-```
-
-## 开发
-
-```bash
-cd go
-
-# 运行全部测试（数据层 + HTTP handler，含真实响应 fixture 与快照时机用例）
-go test ./...
-
-# 静态检查与格式化
-go vet ./...
-gofmt -l .
-```
-
-### 新增 ETF
-
-1. `go/internal/etfs/etfs.go` 的 `All` 列表加一条（code/name/category/manager/exchange）
-2. `backend/etf_fees.json` 补充对应费率
-3. 重启服务（列表按代码顺序展示，前端自动渲染）
-
-### 清除历史数据
-
-删除 `backend/data/history.json` 与 `backend/data/premium.db`，重启后自动重建。
-
-## 数据流
-
-```
-腾讯财经 API ──(30 分钟轮询 / 手动刷新)──▶ quote 抓取+解析
-        │
-        ├─▶ history.Store（内存 + history.json）
-        ├─▶ 收盘后 ▶ SQLite daily_premium（每日快照）
-        └─▶ 内存缓存 resp（RWMutex 保护）
-                    │
-                    └─▶ /api/etfs 等 8 个端点 ──▶ 前端渲染
-```
-
-- 前端请求**不查数据库**，全部走内存缓存
-- 后台轮询与手动刷新共用互斥锁，避免并发抓取写坏缓存
-- 优雅退出：SIGINT/SIGTERM 触发 HTTP 关停，保存数据后退出
-
-## 技术栈
-
-- **后端**：Go 1.26、标准库 `net/http`（Go 1.22+ 路由模式）、`modernc.org/sqlite`（纯 Go SQLite）、`golang.org/x/text`（GBK 解码）
-- **前端**：原生 JavaScript + Chart.js 4.4.4（CDN）+ 纯 CSS（含 Bloomberg 深色主题）
-- **零第三方服务依赖**：无 Redis、无消息队列，单进程即可运行
+Go 版的开发计划与代码审查（`plan.md`、`review.md`）已随 Go 版一起搬到 `../etf-premium-tracker-go/`。
