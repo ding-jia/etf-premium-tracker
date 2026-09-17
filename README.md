@@ -33,7 +33,7 @@ python3 -m http.server 8124 -d pages     # 打开 http://localhost:8124/
 
 ## 每日数据更新（无人值守）
 
-`.github/workflows/update-data.yml` 在每交易日收盘后（北京时间 15:10 / 15:40 / 16:10，跑三次防抖动）执行 `scripts/update_daily.py`：
+`.github/workflows/update-data.yml` 在每交易日收盘后（北京时间 17:00 / 17:20 / 17:40，跑三次防抖动）执行 `scripts/update_daily.py`：
 
 1. 抓腾讯行情 → 只取有溢价率的 ETF → 并入 `pages/data/daily.json`（同一天替换，反复运行幂等）
 2. 文件有变化才提交（`chore: 更新在线版日线数据（YYYY-MM-DD）`）
